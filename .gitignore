@@ -1,0 +1,25 @@
+## [Visual Studio]
+.vs/
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## [VS Code]
+.vscode/
+.history/
+
+## [ASP.NET Core]
+appsettings.Development.json
+
+.DS_Store
+Thumbs.db
+
+## [User-specific files]
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
