@@ -27,8 +27,14 @@
                             <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Dashboard">Thống kê</a>
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Dashboard"><i class="fas fa-chart-line me-1"></i> Thống kê</a>
                         </li>
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark text-primary fw-bold" asp-area="" asp-controller="User" asp-action="Index"><i class="fas fa-users-cog me-1"></i> Quản lý User</a>
+                            </li>
+                        }
                     </ul>
                     <ul class="navbar-nav ms-auto">
                         @if (User.Identity?.IsAuthenticated == true)

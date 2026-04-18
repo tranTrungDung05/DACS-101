@@ -62,36 +62,6 @@ namespace DACS.Controllers
             return View("~/Views/Home/Login.cshtml");
         }
 
-        [HttpPost]
-        public async Task<IActionResult> Register(string fullname, string email, string newUsername, string newPassword)
-        {
-            // Kiểm tra xem username đã tồn tại chưa
-            if (await _context.TaiKhoans.AnyAsync(u => u.TenDangNhap == newUsername))
-            {
-                TempData["ErrorMessage"] = "Tên đăng nhập đã tồn tại!";
-                return View("~/Views/Home/Login.cshtml");
-            }
-
-            // Mặc định gán IdChucVu = 1 (hoặc lấy ID của role Nhân viên/Người dùng nếu có)
-            // Trong thực tế cần kiểm tra bảng ChucVu trước
-            var activeRole = await _context.ChucVus.FirstOrDefaultAsync() ?? new ChucVu { TenChucVu = "User" };
-            
-            var newUser = new TaiKhoan
-            {
-                HoTen = fullname,
-                Email = email,
-                TenDangNhap = newUsername,
-                MatKhau = newPassword, // Lưu ý: Trong thực tế cần Hash mật khẩu
-                IdChucVu = activeRole.IdChucVu
-            };
-
-            _context.TaiKhoans.Add(newUser);
-            await _context.SaveChangesAsync();
-
-            TempData["SuccessMessage"] = "Đăng ký tài khoản thành công! Hãy đăng nhập.";
-            return View("~/Views/Home/Login.cshtml");
-        }
-
         public async Task<IActionResult> Logout()
         {
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);

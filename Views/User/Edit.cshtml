@@ -1,0 +1,55 @@
+@model DACS.Models.TaiKhoan
+
+@{
+    ViewData["Title"] = "Chỉnh sửa người dùng";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm rounded-3">
+                <div class="card-header bg-white border-0 py-3 text-center">
+                    <h5 class="fw-bold mb-0 text-primary">CHỈNH SỬA TÀI KHOẢN</h5>
+                    <p class="text-muted small">Cập nhật thông tin cho <code>@Model.TenDangNhap</code></p>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="Edit">
+                        <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+                        <input type="hidden" asp-for="IdTaiKhoan" />
+                        <input type="hidden" asp-for="TenDangNhap" />
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Họ và tên</label>
+                            <input asp-for="HoTen" class="form-control" required />
+                            <span asp-validation-for="HoTen" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Email</label>
+                            <input asp-for="Email" type="email" class="form-control" required />
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Mật khẩu</label>
+                            <input asp-for="MatKhau" class="form-control" required />
+                            <small class="text-muted italic">Mật khẩu hiển thị trực tiếp (demo purposes)</small>
+                            <span asp-validation-for="MatKhau" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold">Chức vụ</label>
+                            <select asp-for="IdChucVu" class="form-select" asp-items="ViewBag.IdChucVu"></select>
+                            <span asp-validation-for="IdChucVu" class="text-danger small"></span>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">LƯU THAY ĐỔI</button>
+                            <a asp-action="Index" class="btn btn-light text-muted">Hủy bỏ</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -58,10 +58,9 @@
 
         .btn-auth { width: 100%; padding: 10px; font-weight: bold; border-radius: 8px; }
 
-        /* Chuyển đổi giữa 2 form */
-        #registerForm { display: none; }
-        .toggle-link { cursor: pointer; color: #0d6efd; font-weight: 600; text-decoration: none; }
-        .toggle-link:hover { text-decoration: underline; }
+        /* Link liên hệ hỗ trợ */
+        .support-text { font-size: 0.85rem; color: #6c757d; text-align: center; }
+        .support-text a { color: #0d6efd; text-decoration: none; font-weight: 600; }
     </style>
 </head>
 <body>
@@ -110,61 +109,14 @@
                     </div>
                     <button type="submit" class="btn btn-primary btn-auth">ĐĂNG NHẬP</button>
                 </form>
-                <div class="text-center mt-4 small">
-                    Chưa có tài khoản? <span class="toggle-link" onclick="toggleAuthMode()">Đăng ký ngay</span>
-                </div>
-            </div>
-
-            <div id="registerForm">
-                <h5 class="fw-bold mb-4 text-center">Tạo Tài Khoản Mới</h5>
-                <form asp-controller="Account" asp-action="Register" method="post">
-                    <div class="mb-3">
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="fas fa-id-card"></i></span>
-                            <input type="text" name="fullname" class="form-control" placeholder="Họ và tên" required>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="fas fa-envelope"></i></span>
-                            <input type="email" name="email" class="form-control" placeholder="Email liên hệ" required>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="fas fa-user-plus"></i></span>
-                            <input type="text" name="newUsername" class="form-control" placeholder="Tên đăng nhập" required>
-                        </div>
-                    </div>
-                    <div class="mb-4">
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="fas fa-key"></i></span>
-                            <input type="password" name="newPassword" class="form-control" placeholder="Mật khẩu" required>
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-success btn-auth">ĐĂNG KÝ</button>
-                </form>
-                <div class="text-center mt-4 small">
-                    Đã có tài khoản? <span class="toggle-link" onclick="toggleAuthMode()">Quay lại Đăng nhập</span>
+                <div class="support-text mt-4">
+                    Nếu bạn chưa có tài khoản, vui lòng liên hệ <a href="#">Người quản trị hệ thống</a> để được cấp quyền truy cập.
                 </div>
             </div>
 
         </div>
     </div>
 
-    <script>
-        function toggleAuthMode() {
-            var login = document.getElementById('loginForm');
-            var register = document.getElementById('registerForm');
-            
-            if (login.style.display === 'none') {
-                login.style.display = 'block';
-                register.style.display = 'none';
-            } else {
-                login.style.display = 'none';
-                register.style.display = 'block';
-            }
-        }
-    </script>
+    <!-- Script toggleAuthMode đã bị gỡ bỏ -->
 </body>
 </html>
