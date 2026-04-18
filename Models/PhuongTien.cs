@@ -9,7 +9,7 @@ public class PhuongTien
     public string MauSac { get; set; } = string.Empty;
     public bool TrangThai { get; set; }
     public int IdThietBi { get; set; }
-    public virtual ThietBiGPS ThietBiGPS { get; set; } = null!;
+    public virtual ThietBiGPS? ThietBiGPS { get; set; }
     public virtual ICollection<ChiTietHopDong> ChiTietHopDongs { get; set; } = new List<ChiTietHopDong>();
      public virtual ICollection<HanhTrinh> HanhTrinhs { get; set; } = new List<HanhTrinh>();
 }

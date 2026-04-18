@@ -50,6 +50,11 @@ public class ApplicationDbContext : DbContext
             .WithMany(c => c.TaiKhoans)
             .HasForeignKey(t => t.IdChucVu);
 
+        modelBuilder.Entity<PhuongTien>()
+            .HasOne(p => p.ThietBiGPS)
+            .WithMany(t => t.PhuongTiens)
+            .HasForeignKey(p => p.IdThietBi);
+
         // --- Cấu hình Khóa chính phức hợp cho các bảng trung gian ---
         modelBuilder.Entity<ChiTietQuyen>().HasKey(ct => new { ct.IdChucVu, ct.IdQuyen });
         modelBuilder.Entity<ChiTietHopDong>().HasKey(ct => new { ct.IdPhuongTien, ct.IdHopDong });
