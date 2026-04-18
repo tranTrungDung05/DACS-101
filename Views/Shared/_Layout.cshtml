@@ -1,0 +1,61 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Vehicle tracking GPS</title>
+    
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/DoAnCoSo.styles.css" asp-append-version="true" />
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+    <header>
+        
+        <nav class="navbar navbar-expand-sm navbar-light bg-white border-bottom box-shadow mb-0">
+    <div class="container-fluid">
+        <a class="navbar-brand fw-bold" asp-area="" asp-controller="Home" asp-action="Index">Vehicle tracking GPS</a>
+        
+        <ul class="navbar-nav flex-grow-1">
+            <li class="nav-item">
+                <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">
+                    <i class="fas fa-map-marked-alt text-primary me-1"></i> Bản đồ
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Dashboard">
+                    <i class="fas fa-chart-line text-success me-1"></i> Thống kê
+                </a>
+            </li>
+        </ul>
+
+        <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+                <a class="btn btn-outline-primary btn-sm mt-1 fw-bold" asp-area="" asp-controller="Home" asp-action="Login">
+                    <i class="fas fa-sign-in-alt me-1"></i> Đăng nhập
+                </a>
+            </li>
+        </ul>
+    </div>
+</nav>
+    </header>
+
+    <div class="container-fluid px-0">
+        <main role="main">
+            @RenderBody()
+        </main>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

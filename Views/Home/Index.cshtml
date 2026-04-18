@@ -1,0 +1,267 @@
+﻿@{
+    ViewData["Title"] = "Vehicle Tracking GPS";
+}
+
+<style>
+    .tracking-wrapper { display: flex; height: calc(100vh - 56px); width: 100%; overflow: hidden; background-color: #f4f6f9; }
+    
+    .vehicle-sidebar { width: 320px; background: #fff; border-right: 1px solid #dee2e6; display: flex; flex-direction: column; z-index: 1000; box-shadow: 2px 0 5px rgba(0,0,0,.05); }
+    .sidebar-header { padding: 15px; background: #343a40; color: #fff; }
+    .vehicle-list { overflow-y: auto; flex-grow: 1; }
+    .vehicle-item { padding: 12px 15px; border-bottom: 1px solid #f4f4f4; cursor: pointer; transition: 0.2s; position: relative; }
+    .vehicle-item:hover { background: #f0f7ff; }
+    .vehicle-item.active { background-color: #e2efff; border-left: 4px solid #007bff; }
+    
+    .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+    .status-online { background-color: #28a745; }
+    .status-offline { background-color: #ffc107; }
+
+    .map-container { flex-grow: 1; position: relative; }
+    #trackingMap { width: 100%; height: 100%; }
+    .history-control {
+        position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%);
+        background: rgba(255, 255, 255, 0.98); padding: 15px 20px; border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2); z-index: 1000; min-width: 650px;
+        display: none; border: 1px solid #ddd;
+    }
+
+    .violation-marker {
+        background: #dc3545; border: 2px solid #fff; border-radius: 50%;
+        box-shadow: 0 0 8px rgba(220, 53, 69, 0.8);
+        animation: blink-red 1s infinite;
+    }
+    @@keyframes blink-red { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+</style>
+
+<div class="tracking-wrapper">
+    <div class="vehicle-sidebar">
+        <div class="sidebar-header">
+            <h6 class="mb-2"><i class="fas fa-satellite"></i> Danh sách xe</h6>
+            <input type="text" id="txtSearch" onkeyup="filterVehicles()" class="form-control form-control-sm" placeholder="Nhập biển số xe...">
+        </div>
+        <div class="vehicle-list" id="vehicleList">
+            <div class="vehicle-item active" id="item-51H12345" onclick="selectVehicle('51H-123.45')">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="fw-bold plate-txt"><i class="status-dot status-online"></i> 51H-123.45</span>
+                    <span class="badge bg-success">48 km/h</span>
+                </div>
+                <div class="small text-muted mt-1">Cập nhật: Vừa xong</div>
+                <div class="mt-2">
+                    <button class="btn btn-xs btn-primary py-0 px-2" onclick="openHistory('51H-123.45', event)"><i class="fas fa-route"></i> Xem Lịch sử</button>
+                    <button class="btn btn-xs btn-danger py-0 px-2" onclick="showLatestAlert('51H-123.45', event)"><i class="fas fa-exclamation-triangle"></i> Vi phạm</button>
+                </div>
+            </div>
+            <div class="vehicle-item" id="item-29A67890" onclick="selectVehicle('29A-678.90')">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="fw-bold plate-txt"><i class="status-dot status-offline"></i> 29A-678.90</span>
+                    <span class="badge bg-warning text-dark">Dừng</span>
+                </div>
+                <div class="small text-muted mt-1">Cập nhật: 10 phút trước</div>
+                <div class="mt-2">
+                    <button class="btn btn-xs btn-primary py-0 px-2" onclick="openHistory('29A-678.90', event)"><i class="fas fa-route"></i> Xem Lịch sử</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="map-container">
+        <div id="trackingMap"></div>
+
+        <div class="history-control" id="pnlHistory">
+            <div class="d-flex flex-wrap align-items-center justify-content-between">
+                
+                <div class="d-flex align-items-center gap-3">
+                    <span class="fw-bold fs-6">Biển số: <span id="lblPlate" class="text-primary"></span></span>
+                    <div class="btn-group shadow-sm" role="group">
+                        <button class="btn btn-sm btn-success px-3" onclick="playback(1)"><i class="fas fa-play"></i> 1x</button>
+                        <button class="btn btn-sm btn-outline-success bg-white px-3" onclick="playback(3)">3x</button>
+                        <button class="btn btn-sm btn-outline-success bg-white px-3" onclick="playback(8)">8x</button>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-sm btn-danger shadow-sm px-3" onclick="stopPlayback()"><i class="fas fa-stop"></i> Dừng</button>
+                    <button class="btn btn-sm btn-dark shadow-sm px-3" onclick="closeHistory()"><i class="fas fa-times"></i> Đóng</button>
+                </div>
+
+            </div>
+            
+            <hr class="my-2 text-muted">
+            
+            <div class="small text-muted text-center fw-bold" id="lblProgress">Lộ trình đã sẵn sàng. Nhấn nút Tốc độ để bắt đầu.</div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const db = {
+            "51H-123.45": {
+                pos: [10.8080, 106.7111],
+                waypoints: [
+                    [10.8080, 106.7111],
+                    [10.7915, 106.6978] 
+                ],
+                violation: { triggerPercent: 0.5, type: "Quá tốc độ cho phép", detail: "82km/h (Giới hạn: 60km/h)" },
+                detailedRoute: null
+            },
+            "29A-678.90": {
+                pos: [10.7769, 106.7009],
+                waypoints: [
+                    [10.7769, 106.7009],
+                    [10.7725, 106.7060]
+                ],
+                violation: null, detailedRoute: null
+            }
+        };
+
+        var map = L.map('trackingMap').setView([10.8015, 106.7111], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        var carIcon = L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/3202/3202926.png', iconSize: [32, 32], iconAnchor: [16, 16] });
+        
+        var markers = {}, pathLine = null, moveMarker = null, flagMarkers = [];
+        var playbackTimer = null, currentIdx = 0, currentPlate = "";
+
+        Object.keys(db).forEach(plate => {
+            markers[plate] = L.marker(db[plate].pos, { icon: carIcon }).addTo(map).bindPopup(`<b>${plate}</b>`);
+        });
+
+        //Apt routing
+        async function getRoadGeometry(waypoints) {
+            let coords = waypoints.map(p => `${p[1]},${p[0]}`).join(';');
+            let url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`;
+            try {
+                let res = await fetch(url);
+                let data = await res.json();
+                if(data.routes && data.routes.length > 0) {
+                    return data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+                }
+            } catch(err) {
+                console.error("Lỗi API tìm đường:", err);
+            }
+            return waypoints;
+        }
+
+        function selectVehicle(plate) {
+            currentPlate = plate;
+            document.querySelectorAll('.vehicle-item').forEach(v => v.classList.remove('active'));
+            document.getElementById('item-' + plate.replace(/[-.]/g, '')).classList.add('active');
+            map.flyTo(db[plate].pos, 16);
+            markers[plate].openPopup();
+        }
+
+        function filterVehicles() {
+            let val = document.getElementById('txtSearch').value.toUpperCase();
+            document.querySelectorAll('.vehicle-item').forEach(item => {
+                let text = item.querySelector('.plate-txt').innerText.toUpperCase();
+                item.style.display = text.includes(val) ? "block" : "none";
+            });
+        }
+
+        //Lịch sử hành trình
+        async function openHistory(plate, e) {
+            e.stopPropagation();
+            selectVehicle(plate);
+            resetMapObjects();
+
+            document.getElementById('pnlHistory').style.display = 'block';
+            document.getElementById('lblPlate').innerText = plate;
+            document.getElementById('lblProgress').innerHTML = '<i class="fas fa-spinner fa-spin text-primary"></i> Đang tải lộ trình thông minh...';
+
+            let carData = db[plate];
+            
+            if (!carData.detailedRoute) {
+                carData.detailedRoute = await getRoadGeometry(carData.waypoints);
+            }
+
+            let drawRoute = carData.detailedRoute;
+            document.getElementById('lblProgress').innerText = 'Lộ trình đã sẵn sàng. Nhấn nút Tốc độ để bắt đầu.';
+
+            pathLine = L.polyline(drawRoute, { color: '#0d6efd', weight: 6, opacity: 0.8 }).addTo(map);
+            L.marker(drawRoute[0]).addTo(map).bindPopup("<b>Điểm xuất phát</b>");
+            L.marker(drawRoute[drawRoute.length - 1]).addTo(map).bindPopup("<b>Điểm dừng cuối</b>");
+            
+            map.fitBounds(pathLine.getBounds());
+            markers[plate].setOpacity(0); 
+        }
+
+        //Phát lại hành trình
+        function playback(speed) {
+            stopPlayback();
+            let carData = db[currentPlate];
+            let route = carData.detailedRoute;
+            let vInfo = carData.violation;
+
+            let violationIndex = vInfo ? Math.floor(route.length * vInfo.triggerPercent) : -1;
+
+            if (!moveMarker) {
+                currentIdx = 0;
+                moveMarker = L.marker(route[0], { icon: carIcon }).addTo(map);
+            }
+
+            playbackTimer = setInterval(() => {
+                currentIdx += speed;
+                
+                if (currentIdx >= route.length - 1) {
+                    stopPlayback();
+                    alert("Xe đã về đến đích!");
+                    currentIdx = 0;
+                    moveMarker.setLatLng(route[0]);
+                    map.panTo(route[0]);
+                    document.getElementById('lblProgress').innerText = 'Đã hoàn thành mô phỏng.';
+                    return;
+                }
+
+                let p = route[currentIdx];
+                moveMarker.setLatLng(p);
+                
+                if (currentIdx % (speed * 2) === 0) map.panTo(p, {animate: true});
+                
+                document.getElementById('lblProgress').innerText = `Tọa độ GPS: ${p[0].toFixed(5)} , ${p[1].toFixed(5)}`;
+
+                if (vInfo && currentIdx >= violationIndex && currentIdx < violationIndex + speed) {
+                    let flag = L.marker(p, { 
+                        icon: L.divIcon({ className: 'violation-marker', iconSize: [16, 16] }) 
+                    }).addTo(map).bindPopup(`<h6 class="text-danger mb-1"><i class="fas fa-exclamation-triangle"></i> ${vInfo.type}</h6>${vInfo.detail}`).openPopup();
+                    flagMarkers.push(flag);
+                }
+            }, 200); 
+        }
+
+        function stopPlayback() {
+            clearInterval(playbackTimer);
+        }
+
+        function resetMapObjects() {
+            if (pathLine) map.removeLayer(pathLine);
+            if (moveMarker) map.removeLayer(moveMarker);
+            flagMarkers.forEach(f => map.removeLayer(f));
+            flagMarkers = [];
+            currentIdx = 0;
+            moveMarker = null;
+            stopPlayback();
+        }
+
+        function closeHistory() {
+            document.getElementById('pnlHistory').style.display = 'none';
+            resetMapObjects();
+            if(markers[currentPlate]) markers[currentPlate].setOpacity(1);
+        }
+
+        async function showLatestAlert(plate, e) {
+            e.stopPropagation();
+            let v = db[plate].violation;
+            if (!v) return alert("Xe này hiện không có lỗi vi phạm nào.");
+            
+            if (!db[plate].detailedRoute) {
+                db[plate].detailedRoute = await getRoadGeometry(db[plate].waypoints);
+            }
+            
+            let targetIndex = Math.floor(db[plate].detailedRoute.length * v.triggerPercent);
+            let pos = db[plate].detailedRoute[targetIndex];
+            
+            map.flyTo(pos, 18, {animate: true, duration: 1.5});
+            L.popup().setLatLng(pos).setContent(`<h6 class="text-danger mb-1"><i class="fas fa-exclamation-triangle"></i> ${v.type}</h6>${v.detail}`).openOn(map);
+        }
+    </script>
+}
