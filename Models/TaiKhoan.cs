@@ -8,6 +8,6 @@ public class TaiKhoan
     public string HoTen { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public int IdChucVu { get; set; }
-    public virtual ChucVu ChucVu { get; set; } = new ChucVu();
+    public virtual ChucVu? ChucVu { get; set; }
     public virtual ICollection<HopDong> HopDongs { get; set; } = new List<HopDong>();
 }

@@ -44,6 +44,12 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<PhieuViPham>().HasKey(pvp => pvp.IdPhieuViPham);
         modelBuilder.Entity<DuLieuGPS>().HasKey(gps => gps.Id); // Theo file mới em đã sửa cho anh có trường Id
 
+        // --- Cấu hình Mối quan hệ (Foreign Keys) ---
+        modelBuilder.Entity<TaiKhoan>()
+            .HasOne(t => t.ChucVu)
+            .WithMany(c => c.TaiKhoans)
+            .HasForeignKey(t => t.IdChucVu);
+
         // --- Cấu hình Khóa chính phức hợp cho các bảng trung gian ---
         modelBuilder.Entity<ChiTietQuyen>().HasKey(ct => new { ct.IdChucVu, ct.IdQuyen });
         modelBuilder.Entity<ChiTietHopDong>().HasKey(ct => new { ct.IdPhuongTien, ct.IdHopDong });
@@ -73,6 +79,18 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<ChucVu>().HasData(
             new ChucVu { IdChucVu = 1, TenChucVu = "Admin", MoTa = "Quản trị viên toàn quyền hệ thống" },
             new ChucVu { IdChucVu = 2, TenChucVu = "Manager", MoTa = "Quản lý phương tiện" }
+        );
+
+        modelBuilder.Entity<TaiKhoan>().HasData(
+            new TaiKhoan 
+            { 
+                IdTaiKhoan = 1, 
+                TenDangNhap = "admin", 
+                MatKhau = "123", 
+                HoTen = "Super Admin", 
+                Email = "admin@gps.com", 
+                IdChucVu = 1 
+            }
         );
     }
 }
