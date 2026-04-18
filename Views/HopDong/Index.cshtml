@@ -1,0 +1,126 @@
+@model IEnumerable<DACS.Models.HopDong>
+@{
+    ViewData["Title"] = "Quản lý Hợp đồng";
+}
+
+<div class="container-fluid py-4">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <h5 class="m-0 font-weight-bold text-primary"><i class="fas fa-file-contract me-2"></i>Danh sách Hợp đồng</h5>
+            <a asp-action="Create" class="btn btn-primary rounded-pill px-4 shadow-sm">
+                <i class="fas fa-plus-circle me-1"></i> Tạo hợp đồng mới
+            </a>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle" id="contractTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Mã HĐ</th>
+                            <th>Khách hàng</th>
+                            <th>Ngày tạo</th>
+                            <th>Tổng tiền</th>
+                            <th>Người tạo</th>
+                            <th>Trạng thái</th>
+                            <th class="text-center">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr id="row-@item.IdHopDong">
+                                <td class="fw-bold">HĐ-@item.IdHopDong.ToString("D4")</td>
+                                <td>
+                                    <div class="fw-bold">@item.KhachHang?.HoTen</div>
+                                    <small class="text-muted">CCCD: @item.MaCccd</small>
+                                </td>
+                                <td>@item.NgayTao.ToString("dd/MM/yyyy")</td>
+                                <td class="text-primary fw-bold">@item.TongTien.ToString("N0") VNĐ</td>
+                                <td>@item.TaiKhoan?.HoTen</td>
+                                <td>
+                                    @if (item.TrangThai)
+                                    {
+                                        <span class="badge bg-success rounded-pill px-3">Đang hoạt động</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary rounded-pill px-3">Đã kết thúc</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group shadow-sm" role="group">
+                                        <a asp-action="Details" asp-route-id="@item.IdHopDong" class="btn btn-sm btn-outline-info" title="Chi tiết">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteContract(@item.IdHopDong)" title="Xóa">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" />
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        $(document).ready(function () {
+            $('#contractTable').DataTable({
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/1.13.7/i18n/vi.json"
+                },
+                "order": [[0, "desc"]]
+            });
+
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <text>
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Thành công!',
+                        text: '@Html.Raw(TempData["SuccessMessage"])',
+                        timer: 3000,
+                        showConfirmButton: false
+                    });
+                </text>
+            }
+        });
+
+        function deleteContract(id) {
+            Swal.fire({
+                title: 'Xác nhận xóa hợp đồng?',
+                text: "Các phương tiện trong hợp đồng sẽ được giải phóng về trạng thái Sẵn sàng!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Vâng, xóa nó!',
+                cancelButtonText: 'Hủy'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '@Url.Action("Delete", "HopDong")/' + id,
+                        type: 'POST',
+                        success: function (res) {
+                            if (res.success) {
+                                Swal.fire('Đã xóa!', res.message, 'success');
+                                $('#row-' + id).fadeOut();
+                            } else {
+                                Swal.fire('Lỗi!', res.message, 'error');
+                            }
+                        }
+                    });
+                }
+            });
+        }
+    </script>
+}

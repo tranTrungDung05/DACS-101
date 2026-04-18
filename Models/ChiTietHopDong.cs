@@ -1,4 +1,4 @@
-﻿namespace DACS.Models;
+namespace DACS.Models;
 
 public class ChiTietHopDong
 {

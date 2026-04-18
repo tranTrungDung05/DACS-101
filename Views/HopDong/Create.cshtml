@@ -1,0 +1,130 @@
+@model DACS.Models.HopDong
+@{
+    ViewData["Title"] = "Tạo Hợp đồng mới";
+    var phuongTiens = ViewBag.PhuongTiens as List<DACS.Models.PhuongTien>;
+}
+
+<div class="container py-4">
+    <form asp-action="Create" id="contractForm">
+        <div class="row">
+            <!-- Thông tin khách hàng & Hợp đồng -->
+            <div class="col-lg-4 mb-4">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-header bg-primary text-white py-3">
+                        <h5 class="m-0"><i class="fas fa-file-invoice me-2"></i>Thông tin Hợp đồng</h5>
+                    </div>
+                    <div class="card-body">
+                        <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">Khách hàng</label>
+                            <select asp-for="MaCccd" class="form-select shadow-sm" asp-items="ViewBag.KhachHangs" required>
+                                <option value="">-- Chọn khách hàng --</option>
+                            </select>
+                            <span asp-validation-for="MaCccd" class="text-danger small"></span>
+                        </div>
+
+                        <div class="alert alert-info border-0 shadow-sm small">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Hệ thống sẽ tự động tính tổng tiền dựa trên giá thuê của các phương tiện được thêm vào.
+                        </div>
+
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary rounded-pill shadow">
+                                <i class="fas fa-save me-1"></i> Lưu và Tạo hợp đồng
+                            </button>
+                            <a asp-action="Index" class="btn btn-light rounded-pill border">Hủy bỏ</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Danh sách phương tiện thuê -->
+            <div class="col-lg-8 mb-4">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-header bg-dark text-white py-3 d-flex justify-content-between align-items-center">
+                        <h5 class="m-0"><i class="fas fa-car me-2"></i>Phương tiện thuê</h5>
+                        <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-3" id="btnAddVehicle">
+                            <i class="fas fa-plus me-1"></i> Thêm xe
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="vehicleContainer">
+                            <!-- JS will inject vehicle rows here -->
+                            <div class="text-center py-5 text-muted" id="placeholderMsg">
+                                <i class="fas fa-car-side d-block mb-3 fs-1 opacity-25"></i>
+                                Vui lòng nhấn "Thêm xe" để bắt đầu chọn phương tiện.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Template Row -->
+<template id="vehicleRowTemplate">
+    <div class="vehicle-row card border-0 bg-light mb-3 p-3 shadow-sm position-relative animate__animated animate__fadeIn">
+        <button type="button" class="btn-close position-absolute top-0 end-0 m-2 btn-remove-row" style="font-size: 0.8rem;"></button>
+        <div class="row g-3">
+            <div class="col-md-5">
+                <label class="form-label small fw-bold">Chọn phương tiện</label>
+                <select name="details[INDEX].IdPhuongTien" class="form-select form-select-sm select-vehicle" required>
+                    <option value="">-- Chọn xe --</option>
+                    @if (phuongTiens != null)
+                    {
+                        foreach (var pt in phuongTiens)
+                        {
+                            <option value="@pt.IdPhuongTien" data-type="@pt.LoaiPhuongTien" data-brand="@pt.HangSanXuat">@pt.BienSo (@pt.HangSanXuat)</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-md-7">
+                <div class="row g-2">
+                    <div class="col-6">
+                        <label class="form-label small fw-bold">Từ ngày</label>
+                        <input type="date" name="details[INDEX].NgayThue" class="form-control form-control-sm" required value="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small fw-bold">Đến ngày</label>
+                        <input type="date" name="details[INDEX].NgayTra" class="form-control form-control-sm" required value="@DateTime.Now.AddDays(1).ToString("yyyy-MM-dd")" />
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-5">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text">Giá thuê</span>
+                    <input type="number" name="details[INDEX].GiaThue" class="form-control" required min="0" placeholder="Số tiền" />
+                    <span class="input-group-text">VNĐ</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+    <script>
+        let rowIndex = 0;
+
+        $(document).ready(function () {
+            $('#btnAddVehicle').click(function () {
+                $('#placeholderMsg').hide();
+                const template = $('#vehicleRowTemplate').html();
+                const newRow = template.replace(/INDEX/g, rowIndex++);
+                $('#vehicleContainer').append(newRow);
+            });
+
+            $(document).on('click', '.btn-remove-row', function () {
+                $(this).closest('.vehicle-row').remove();
+                if ($('.vehicle-row').length === 0) {
+                    $('#placeholderMsg').show();
+                }
+            });
+
+            // Handle form validation etc if needed
+        });
+    </script>
+}

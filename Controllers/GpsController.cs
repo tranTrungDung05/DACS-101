@@ -43,13 +43,33 @@ public class GpsController : ControllerBase
             {
                 PhuongTienIdPhuongTien = vehicle.IdPhuongTien,
                 NgayDi = DateTime.Now,
+                NgayDen = DateTime.Now,
+                TongQuangDuong = 0,
                 TrangThai = true
             };
             _context.HanhTrinhs.Add(journey);
             await _context.SaveChangesAsync();
         }
 
-        // 3. Lưu dữ liệu GPS vào DB
+        // 3. Tính toán quãng đường (nếu có điểm GPS trước đó)
+        var lastGps = await _context.DuLieuGPS
+            .Where(d => d.HanhTrinhIdHanhTrinh == journey.IdHanhTrinh)
+            .OrderByDescending(d => d.Timestamp)
+            .FirstOrDefaultAsync();
+
+        if (lastGps != null)
+        {
+            double dist = CalculateDistance(
+                (double)lastGps.ViDo, (double)lastGps.KinhDo,
+                request.Latitude, request.Longitude
+            );
+            journey.TongQuangDuong += (decimal)dist;
+        }
+
+        // 4. Cập nhật thời điểm mới nhất của hành trình
+        journey.NgayDen = DateTime.Now;
+
+        // 5. Lưu dữ liệu GPS vào DB
         var gpsData = new DuLieuGPS
         {
             HanhTrinhIdHanhTrinh = journey.IdHanhTrinh,
@@ -62,14 +82,32 @@ public class GpsController : ControllerBase
         _context.DuLieuGPS.Add(gpsData);
         await _context.SaveChangesAsync();
 
-        // 4. Phát qua SignalR gửi biển số xe
+        // 6. Phát qua SignalR gửi biển số xe
         await _hubContext.Clients.All.SendAsync("ReceiveLocationUpdate", 
             vehicle.BienSo, 
             request.Latitude, 
             request.Longitude, 
             request.Speed);
 
-        return Ok(new { status = "Success", message = $"Location updated for {vehicle.BienSo}" });
+        return Ok(new { status = "Success", message = $"Location updated for {vehicle.BienSo}. Total distance: {journey.TongQuangDuong:N2} km" });
+    }
+
+    private double CalculateDistance(double lat1, double lon1, double lat2, double lon2)
+    {
+        var R = 6371; // Bán kính Trái Đất theo km
+        var dLat = ToRadians(lat2 - lat1);
+        var dLon = ToRadians(lon2 - lon1);
+        var a =
+            Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
+            Math.Cos(ToRadians(lat1)) * Math.Cos(ToRadians(lat2)) *
+            Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+        var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+        return R * c;
+    }
+
+    private double ToRadians(double deg)
+    {
+        return deg * (Math.PI / 180);
     }
 }
 

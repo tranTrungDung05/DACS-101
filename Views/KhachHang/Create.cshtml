@@ -1,0 +1,62 @@
+@model DACS.Models.KhachHang
+@{
+    ViewData["Title"] = "Thêm Khách hàng";
+}
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card shadow border-0 rounded-3">
+                <div class="card-header bg-primary text-white py-3">
+                    <h5 class="m-0"><i class="fas fa-user-plus me-2"></i>Thêm Khách hàng mới</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="Create">
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                        <div class="form-floating mb-3">
+                            <input asp-for="MaCccd" class="form-control" placeholder="Mã CCCD" required />
+                            <label asp-for="MaCccd">Mã CCCD (Số định danh)</label>
+                            <span asp-validation-for="MaCccd" class="text-danger small"></span>
+                        </div>
+
+                        <div class="form-floating mb-3">
+                            <input asp-for="HoTen" class="form-control" placeholder="Họ Tên" required />
+                            <label asp-for="HoTen">Họ và Tên</label>
+                            <span asp-validation-for="HoTen" class="text-danger small"></span>
+                        </div>
+
+                        <div class="form-floating mb-3">
+                            <input asp-for="NgaySinh" type="date" class="form-control" placeholder="Ngày sinh" required />
+                            <label asp-for="NgaySinh">Ngày sinh</label>
+                            <span asp-validation-for="NgaySinh" class="text-danger small"></span>
+                        </div>
+
+                        <div class="form-floating mb-3">
+                            <input asp-for="Sdt" class="form-control" placeholder="Số điện thoại" />
+                            <label asp-for="Sdt">Số điện thoại</label>
+                            <span asp-validation-for="Sdt" class="text-danger small"></span>
+                        </div>
+
+                        <div class="form-floating mb-4">
+                            <textarea asp-for="DiaChi" class="form-control" placeholder="Địa chỉ" style="height: 100px"></textarea>
+                            <label asp-for="DiaChi">Địa chỉ</label>
+                            <span asp-validation-for="DiaChi" class="text-danger small"></span>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a asp-action="Index" class="btn btn-light rounded-pill px-4 me-md-2">Quay lại</a>
+                            <button type="submit" class="btn btn-primary rounded-pill px-4 shadow">
+                                <i class="fas fa-save me-1"></i> Lưu thông tin
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
