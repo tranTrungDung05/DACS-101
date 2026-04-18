@@ -11,5 +11,5 @@ public class PhuongTien
     public int IdThietBi { get; set; }
     public virtual ThietBiGPS? ThietBiGPS { get; set; }
     public virtual ICollection<ChiTietHopDong> ChiTietHopDongs { get; set; } = new List<ChiTietHopDong>();
-     public virtual ICollection<HanhTrinh> HanhTrinhs { get; set; } = new List<HanhTrinh>();
+    public virtual ICollection<HanhTrinh> HanhTrinhs { get; set; } = new List<HanhTrinh>();
 }

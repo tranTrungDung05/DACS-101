@@ -45,19 +45,39 @@
                     <ul class="navbar-nav ms-auto">
                         @if (User.Identity?.IsAuthenticated == true)
                         {
-                            <li class="nav-item">
-                                <span class="nav-link text-dark me-2"><i class="fas fa-user-circle"></i> @User.FindFirst("FullName")?.Value</span>
-                            </li>
-                            <li class="nav-item">
-                                <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
-                                    <button type="submit" class="btn btn-outline-danger btn-sm px-3 shadow-sm"><i class="fas fa-sign-out-alt"></i> Đăng xuất</button>
-                                </form>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarProfile" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <div class="avatar-circle me-2 d-flex align-items-center justify-content-center bg-primary text-white rounded-circle shadow-sm" style="width: 32px; height: 32px;">
+                                        <i class="fas fa-user-circle"></i>
+                                    </div>
+                                    <span class="text-dark fw-bold">@User.FindFirst("FullName")?.Value</span>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg mt-2 py-2" aria-labelledby="navbarProfile" style="border-radius: 12px; min-width: 200px;">
+                                    <li>
+                                        <div class="px-3 py-2 border-bottom mb-1">
+                                            <p class="small text-muted mb-0">Đang đăng nhập với</p>
+                                            <p class="fw-bold mb-0">@User.Identity.Name</p>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item py-2" asp-controller="Account" asp-action="Profile">
+                                            <i class="fas fa-user-cog me-2 text-primary"></i> Hồ sơ cá nhân
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item py-2" asp-controller="Account" asp-action="Logout">
+                                            <i class="fas fa-sign-out-alt me-2 text-danger"></i> Đăng xuất
+                                        </a>
+                                    </li>
+                                </ul>
                             </li>
                         }
                         else
                         {
                             <li class="nav-item">
-                                <a class="nav-link btn btn-outline-primary btn-sm px-3 shadow-sm" asp-area="" asp-controller="Account" asp-action="Login"><i class="fas fa-sign-in-alt"></i> Đăng nhập</a>
+                                <a class="nav-link btn btn-outline-primary btn-sm px-4 rounded-pill shadow-sm" asp-area="" asp-controller="Account" asp-action="Login">
+                                    <i class="fas fa-sign-in-alt me-1"></i> Đăng nhập
+                                </a>
                             </li>
                         }
                     </ul>

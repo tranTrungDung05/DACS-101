@@ -1,4 +1,7 @@
-﻿namespace DACS.Models;
+using System;
+using System.Collections.Generic;
+
+namespace DACS.Models;
 
 public class HanhTrinh
 {
@@ -8,7 +11,7 @@ public class HanhTrinh
     public decimal TongQuangDuong { get; set; } 
     public bool TrangThai { get; set; } = true;
 
-    public int IdPhuongTien { get; set; }
+    public int PhuongTienIdPhuongTien { get; set; }
     public virtual PhuongTien PhuongTien { get; set; } = null!;
 
     public virtual ICollection<DuLieuGPS> DuLieuGPS { get; set; } = new List<DuLieuGPS>();

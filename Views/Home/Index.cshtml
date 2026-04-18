@@ -1,3 +1,5 @@
+@model IEnumerable<DACS.Models.PhuongTien>
+
 @{
     ViewData["Title"] = "Vehicle Tracking GPS";
 }
@@ -40,27 +42,23 @@
             <input type="text" id="txtSearch" onkeyup="filterVehicles()" class="form-control form-control-sm" placeholder="Nhập biển số xe...">
         </div>
         <div class="vehicle-list" id="vehicleList">
-            <div class="vehicle-item active" id="item-51H12345" onclick="selectVehicle('51H-123.45')">
-                <div class="d-flex justify-content-between align-items-center">
-                    <span class="fw-bold plate-txt"><i class="status-dot status-online"></i> 51H-123.45</span>
-                    <span class="badge bg-success">48 km/h</span>
+            @foreach (var item in Model)
+            {
+                var latestGPS = item.HanhTrinhs.OrderByDescending(h => h.NgayDi).FirstOrDefault()?.DuLieuGPS.OrderByDescending(d => d.Timestamp).FirstOrDefault();
+                var statusClass = item.TrangThai ? "status-online" : "status-offline";
+                var speed = latestGPS?.TocDo ?? 0;
+
+                <div class="vehicle-item" id="item-@item.BienSo.Replace("-", "").Replace(".", "")" onclick="selectVehicle('@item.BienSo')">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="fw-bold plate-txt"><i class="status-dot @statusClass"></i> @item.BienSo</span>
+                        <span class="badge @(item.TrangThai ? "bg-success" : "bg-warning text-dark")">@(item.TrangThai ? "Sẵn sàng" : "Đang bận")</span>
+                    </div>
+                    <div class="small text-muted mt-1">Cập nhật: @(latestGPS != null ? latestGPS.Timestamp.ToString("HH:mm") : "N/A")</div>
+                    <div class="mt-2">
+                        <button class="btn btn-xs btn-primary py-0 px-2" onclick="openHistory('@item.BienSo', event)"><i class="fas fa-route"></i> Lịch sử</button>
+                    </div>
                 </div>
-                <div class="small text-muted mt-1">Cập nhật: Vừa xong</div>
-                <div class="mt-2">
-                    <button class="btn btn-xs btn-primary py-0 px-2" onclick="openHistory('51H-123.45', event)"><i class="fas fa-route"></i> Xem Lịch sử</button>
-                    <button class="btn btn-xs btn-danger py-0 px-2" onclick="showLatestAlert('51H-123.45', event)"><i class="fas fa-exclamation-triangle"></i> Vi phạm</button>
-                </div>
-            </div>
-            <div class="vehicle-item" id="item-29A67890" onclick="selectVehicle('29A-678.90')">
-                <div class="d-flex justify-content-between align-items-center">
-                    <span class="fw-bold plate-txt"><i class="status-dot status-offline"></i> 29A-678.90</span>
-                    <span class="badge bg-warning text-dark">Dừng</span>
-                </div>
-                <div class="small text-muted mt-1">Cập nhật: 10 phút trước</div>
-                <div class="mt-2">
-                    <button class="btn btn-xs btn-primary py-0 px-2" onclick="openHistory('29A-678.90', event)"><i class="fas fa-route"></i> Xem Lịch sử</button>
-                </div>
-            </div>
+            }
         </div>
     </div>
 
@@ -69,7 +67,6 @@
 
         <div class="history-control" id="pnlHistory">
             <div class="d-flex flex-wrap align-items-center justify-content-between">
-                
                 <div class="d-flex align-items-center gap-3">
                     <span class="fw-bold fs-6">Biển số: <span id="lblPlate" class="text-primary"></span></span>
                     <div class="btn-group shadow-sm" role="group">
@@ -78,40 +75,35 @@
                         <button class="btn btn-sm btn-outline-success bg-white px-3" onclick="playback(8)">8x</button>
                     </div>
                 </div>
-
                 <div class="d-flex align-items-center gap-2">
                     <button class="btn btn-sm btn-danger shadow-sm px-3" onclick="stopPlayback()"><i class="fas fa-stop"></i> Dừng</button>
                     <button class="btn btn-sm btn-dark shadow-sm px-3" onclick="closeHistory()"><i class="fas fa-times"></i> Đóng</button>
                 </div>
-
             </div>
-            
             <hr class="my-2 text-muted">
-            
             <div class="small text-muted text-center fw-bold" id="lblProgress">Lộ trình đã sẵn sàng. Nhấn nút Tốc độ để bắt đầu.</div>
         </div>
     </div>
 </div>
 
 @section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
     <script>
         const db = {
-            "51H-123.45": {
-                pos: [10.8080, 106.7111],
-                waypoints: [
-                    [10.8080, 106.7111],
-                    [10.7915, 106.6978] 
-                ],
-                violation: { triggerPercent: 0.5, type: "Quá tốc độ cho phép", detail: "82km/h (Giới hạn: 60km/h)" },
-                detailedRoute: null
-            },
-            "29A-678.90": {
-                pos: [10.7769, 106.7009],
-                waypoints: [
-                    [10.7769, 106.7009],
-                    [10.7725, 106.7060]
-                ],
-                violation: null, detailedRoute: null
+            @foreach (var item in Model)
+            {
+                var latestHanhTrinh = item.HanhTrinhs.OrderByDescending(h => h.NgayDi).FirstOrDefault();
+                var latestGPS = latestHanhTrinh?.DuLieuGPS.OrderByDescending(d => d.Timestamp).FirstOrDefault();
+                var waypoints = latestHanhTrinh?.DuLieuGPS.OrderBy(d => d.Timestamp).TakeLast(200).Select(d => $"[{d.ViDo}, {d.KinhDo}]");
+                
+                if (latestGPS != null) {
+                    @: "@item.BienSo": {
+                    @:    pos: [@latestGPS.ViDo, @latestGPS.KinhDo],
+                    @:    waypoints: [@Html.Raw(string.Join(",", waypoints ?? new List<string>()))],
+                    @:    violation: null, 
+                    @:    detailedRoute: null
+                    @: },
+                }
             }
         };
 
@@ -126,7 +118,41 @@
             markers[plate] = L.marker(db[plate].pos, { icon: carIcon }).addTo(map).bindPopup(`<b>${plate}</b>`);
         });
 
-        //Apt routing
+        // SIGNALR CONNECTION
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/gpsHub")
+            .withAutomaticReconnect()
+            .build();
+
+        connection.on("ReceiveLocationUpdate", (plate, lat, lng, speed) => {
+            console.log(`Update: ${plate} -> ${lat}, ${lng} (${speed} km/h)`);
+            
+            if (!markers[plate]) {
+                markers[plate] = L.marker([lat, lng], { icon: carIcon }).addTo(map).bindPopup(`<b>${plate}</b>`);
+                db[plate] = { pos: [lat, lng], waypoints: [[lat, lng]], detailedRoute: null, violation: null };
+            } else {
+                markers[plate].setLatLng([lat, lng]);
+                db[plate].pos = [lat, lng];
+            }
+
+            // Update Sidebar UI
+            const item = document.getElementById('item-' + plate.replace(/[-.]/g, ''));
+            if (item) {
+                const badge = item.querySelector('.badge');
+                if (badge) {
+                    // Cập nhật màu dấu chấm trạng thái nếu cần, nhưng giữ nguyên nhãn Sẵn sàng/Đang bận
+                    const dot = item.querySelector('.status-dot');
+                    if (dot) {
+                        dot.className = speed > 0 ? "status-dot status-online" : "status-dot status-offline";
+                    }
+                }
+                const updateTime = item.querySelector('.text-muted');
+                if (updateTime) updateTime.innerText = "Cập nhật: Vừa xong";
+            }
+        });
+
+        connection.start().catch(err => console.error(err));
+
         async function getRoadGeometry(waypoints) {
             let coords = waypoints.map(p => `${p[1]},${p[0]}`).join(';');
             let url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`;
@@ -146,8 +172,10 @@
             currentPlate = plate;
             document.querySelectorAll('.vehicle-item').forEach(v => v.classList.remove('active'));
             document.getElementById('item-' + plate.replace(/[-.]/g, '')).classList.add('active');
-            map.flyTo(db[plate].pos, 16);
-            markers[plate].openPopup();
+            if (db[plate]) {
+                map.flyTo(db[plate].pos, 16);
+                markers[plate].openPopup();
+            }
         }
 
         function filterVehicles() {
@@ -158,7 +186,6 @@
             });
         }
 
-        //Lịch sử hành trình
         async function openHistory(plate, e) {
             e.stopPropagation();
             selectVehicle(plate);
@@ -169,9 +196,15 @@
             document.getElementById('lblProgress').innerHTML = '<i class="fas fa-spinner fa-spin text-primary"></i> Đang tải lộ trình thông minh...';
 
             let carData = db[plate];
+            if (!carData) return;
             
             if (!carData.detailedRoute) {
-                carData.detailedRoute = await getRoadGeometry(carData.waypoints);
+                // Nếu đã có nhiều điểm (giả lập hoặc hành trình thực), dùng luôn các điểm đó làm route
+                if (carData.waypoints.length > 50) {
+                    carData.detailedRoute = carData.waypoints;
+                } else {
+                    carData.detailedRoute = await getRoadGeometry(carData.waypoints);
+                }
             }
 
             let drawRoute = carData.detailedRoute;
@@ -185,11 +218,11 @@
             markers[plate].setOpacity(0); 
         }
 
-        //Phát lại hành trình
         function playback(speed) {
             stopPlayback();
             let carData = db[currentPlate];
             let route = carData.detailedRoute;
+            if (!route) return;
             let vInfo = carData.violation;
 
             let violationIndex = vInfo ? Math.floor(route.length * vInfo.triggerPercent) : -1;
@@ -246,22 +279,6 @@
             document.getElementById('pnlHistory').style.display = 'none';
             resetMapObjects();
             if(markers[currentPlate]) markers[currentPlate].setOpacity(1);
-        }
-
-        async function showLatestAlert(plate, e) {
-            e.stopPropagation();
-            let v = db[plate].violation;
-            if (!v) return alert("Xe này hiện không có lỗi vi phạm nào.");
-            
-            if (!db[plate].detailedRoute) {
-                db[plate].detailedRoute = await getRoadGeometry(db[plate].waypoints);
-            }
-            
-            let targetIndex = Math.floor(db[plate].detailedRoute.length * v.triggerPercent);
-            let pos = db[plate].detailedRoute[targetIndex];
-            
-            map.flyTo(pos, 18, {animate: true, duration: 1.5});
-            L.popup().setLatLng(pos).setContent(`<h6 class="text-danger mb-1"><i class="fas fa-exclamation-triangle"></i> ${v.type}</h6>${v.detail}`).openOn(map);
         }
     </script>
 }

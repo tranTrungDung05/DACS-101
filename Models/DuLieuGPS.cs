@@ -1,9 +1,12 @@
-﻿namespace DACS.Models;
+using System;
+
+namespace DACS.Models;
 
 public class DuLieuGPS
 {
     public long Id { get; set; } 
-    public int IdHanhTrinh { get; set; }
+    public int HanhTrinhIdHanhTrinh { get; set; }
+    public int? ThietBiGPSIdThietBi { get; set; }
     
     public decimal KinhDo { get; set; } 
     public decimal ViDo { get; set; }   

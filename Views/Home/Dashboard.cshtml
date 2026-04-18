@@ -3,9 +3,8 @@
     var totalVehicles = ViewBag.TotalVehicles ?? 0;
     var activeDevices = ViewBag.ActiveDevices ?? 0;
     var violationsToday = ViewBag.ViolationsToday ?? 0;
-    var runningCount = ViewBag.RunningCount ?? 0;
-    var stoppedCount = ViewBag.StoppedCount ?? 0;
-    var disconnectedCount = ViewBag.DisconnectedCount ?? 0;
+    var readyCount = ViewBag.ReadyCount ?? 0;
+    var busyCount = ViewBag.BusyCount ?? 0;
 }
 
 <style>
@@ -80,13 +79,12 @@
         new Chart(ctxDoughnut, {
             type: 'doughnut',
             data: {
-                labels: ['Đang chạy', 'Dừng đỗ', 'Mất kết nối'],
+                labels: ['Sẵn sàng', 'Đang bận'],
                 datasets: [{
-                    data: [@runningCount, @stoppedCount, @disconnectedCount],
+                    data: [@readyCount, @busyCount],
                     backgroundColor: [
                         '#198754',
-                        '#ffc107',
-                        '#dc3545'
+                        '#ffc107'
                     ],
                     borderWidth: 2,
                     hoverOffset: 4
