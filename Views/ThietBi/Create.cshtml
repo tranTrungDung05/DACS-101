@@ -1,0 +1,71 @@
+@model DACS.Models.ThietBiGPS
+
+@{
+    ViewData["Title"] = "Thêm thiết bị mới";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-action="Index">Danh sách thiết bị</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Thêm mới</li>
+                </ol>
+            </nav>
+
+            <div class="card border-0 shadow-sm rounded-3">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h5 class="fw-bold mb-0 text-primary"><i class="fas fa-plus-circle me-2"></i>ĐĂNG KÝ THIẾT BỊ MỚI</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="Create">
+                        <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-uppercase">Mã IMEI</label>
+                            <input asp-for="MaImei" class="form-control" placeholder="Nhập 15 số IMEI" required />
+                            <span asp-validation-for="MaImei" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-uppercase">Loại thiết bị</label>
+                            <select asp-for="LoaiThietBi" class="form-select">
+                                <option value="BCE-01">BCE-01 (Cơ bản)</option>
+                                <option value="GV300">GV300 (Cao cấp)</option>
+                                <option value="Suntech ST310U">Suntech ST310U</option>
+                                <option value="Teltonika FMB920">Teltonika FMB920</option>
+                            </select>
+                            <span asp-validation-for="LoaiThietBi" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-uppercase">Ngày kích hoạt</label>
+                            <input asp-for="NgayKichHoat" type="date" class="form-control" value="@DateTime.Now.ToString("yyyy-MM-dd")" required />
+                            <span asp-validation-for="NgayKichHoat" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-uppercase">Trạng thái ban đầu</label>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" asp-for="TrangThai" checked>
+                                <label class="form-check-label small" for="TrangThai">Kích hoạt ngay sau khi tạo</label>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg fs-6 fw-bold shadow-sm">
+                                <i class="fas fa-save me-1"></i> LƯU THIẾT BỊ
+                            </button>
+                            <a asp-action="Index" class="btn btn-light text-muted">Hủy bỏ và quay lại</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

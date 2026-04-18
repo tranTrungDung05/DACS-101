@@ -1,0 +1,98 @@
+@model DACS.Models.ThietBiGPS
+
+@{
+    ViewData["Title"] = "Chỉnh sửa thiết bị";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-action="Index">Danh sách thiết bị</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Chỉnh sửa</li>
+                </ol>
+            </nav>
+
+            <div class="card border-0 shadow-sm rounded-3">
+                <div class="card-header bg-white border-bottom py-3">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-2 me-3">
+                            <i class="fas fa-edit"></i>
+                        </div>
+                        <h5 class="fw-bold mb-0 text-dark">CHỈNH SỬA THIẾT BỊ</h5>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="Edit">
+                        <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+                        <input type="hidden" asp-for="IdThietBi" />
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-uppercase">Mã IMEI</label>
+                            <input asp-for="MaImei" class="form-control" placeholder="Nhập 15 số IMEI" required />
+                            <span asp-validation-for="MaImei" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-uppercase">Loại thiết bị</label>
+                            <select asp-for="LoaiThietBi" class="form-select">
+                                <option value="BCE-01">BCE-01 (Cơ bản)</option>
+                                <option value="GV300">GV300 (Cao cấp)</option>
+                                <option value="Suntech ST310U">Suntech ST310U</option>
+                                <option value="Teltonika FMB920">Teltonika FMB920</option>
+                            </select>
+                            <span asp-validation-for="LoaiThietBi" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-uppercase">Ngày kích hoạt</label>
+                            <input asp-for="NgayKichHoat" type="date" class="form-control" required />
+                            <span asp-validation-for="NgayKichHoat" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-uppercase">Trạng thái hoạt động</label>
+                            <div class="form-check form-switch custom-switch">
+                                <input class="form-check-input" type="checkbox" asp-for="TrangThai">
+                                <label class="form-check-label small" for="TrangThai">
+                                    @(Model.TrangThai ? "Thiết bị đang hoạt động" : "Thiết bị đang tạm dừng")
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg fs-6 fw-bold shadow-sm">
+                                <i class="fas fa-save me-1"></i> CẬP NHẬT THAY ĐỔI
+                            </button>
+                            <a asp-action="Index" class="btn btn-light text-muted">Hủy bỏ</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="mt-4 p-3 bg-light rounded-3 border">
+                <h6 class="fw-bold small text-muted text-uppercase mb-2"><i class="fas fa-info-circle me-1"></i> Thông tin bổ sung</h6>
+                <p class="small text-muted mb-0">
+                    Lưu ý: Thay đổi mã IMEI có thể ảnh hưởng đến dữ liệu hành trình đã ghi nhận. Hãy cẩn trọng khi chỉnh sửa thông tin này.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <style>
+        .custom-switch .form-check-input {
+            width: 3rem;
+            height: 1.5rem;
+            cursor: pointer;
+        }
+        .custom-switch .form-check-label {
+            margin-left: 0.5rem;
+            padding-top: 0.25rem;
+            cursor: pointer;
+        }
+    </style>
+}
