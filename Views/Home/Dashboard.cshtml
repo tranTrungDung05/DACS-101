@@ -1,0 +1,141 @@
+@{
+    ViewData["Title"] = "Thống kê";
+}
+
+<style>
+    .dashboard-wrapper { background-color: #f4f6f9; min-height: calc(100vh - 56px); padding: 20px; }
+    
+    /* Thiết kế các thẻ thông tin (KPI Cards) */
+    .info-box { background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: space-between; border-left: 5px solid transparent; transition: transform 0.2s; }
+    .info-box:hover { transform: translateY(-3px); }
+    .info-box.border-primary { border-left-color: #0d6efd !important; }
+    .info-box.border-success { border-left-color: #198754 !important; }
+    .info-box.border-warning { border-left-color: #ffc107 !important; }
+    .info-box.border-danger { border-left-color: #dc3545 !important; }
+    
+    .info-box .icon { font-size: 2.5rem; opacity: 0.8; }
+    .info-box .content h3 { margin: 0; font-size: 1.8rem; font-weight: bold; color: #343a40; }
+    .info-box .content p { margin: 0; color: #6c757d; font-size: 0.9rem; font-weight: 500; text-transform: uppercase; }
+
+    .chart-card { background: #fff; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); padding: 20px; height: 100%; border: none; }
+    .chart-title { font-size: 1.1rem; font-weight: bold; color: #343a40; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 20px; }
+</style>
+
+<div class="dashboard-wrapper">
+    <div class="container-fluid">
+        <div class="row g-4 mb-4">
+            <div class="col-xl-3 col-sm-6">
+                <div class="info-box border-primary">
+                    <div class="content">
+                        <p>Tổng số phương tiện</p>
+                        <h3>125</h3>
+                    </div>
+                    <div class="icon text-primary"><i class="fas fa-truck"></i></div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6">
+                <div class="info-box border-success">
+                    <div class="content">
+                        <p>Đang hoạt động</p>
+                        <h3>98</h3>
+                    </div>
+                    <div class="icon text-success"><i class="fas fa-satellite-dish"></i></div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6">
+                <div class="info-box border-warning">
+                    <div class="content">
+                        <p>Tổng km trong ngày</p>
+                        <h3>1,420 <span style="font-size: 1rem; color: #6c757d;">km</span></h3>
+                    </div>
+                    <div class="icon text-warning"><i class="fas fa-route"></i></div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6">
+                <div class="info-box border-danger">
+                    <div class="content">
+                        <p>Vi phạm hôm nay</p>
+                        <h3>12</h3>
+                    </div>
+                    <div class="icon text-danger"><i class="fas fa-exclamation-triangle"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="chart-card">
+                    <h5 class="chart-title"><i class="fas fa-chart-bar me-2 text-primary"></i>Quãng đường di chuyển (7 ngày qua)</h5>
+                    <canvas id="barChart" height="100"></canvas>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="chart-card">
+                    <h5 class="chart-title"><i class="fas fa-chart-pie me-2 text-success"></i>Tỉ lệ trạng thái xe</h5>
+                    <div style="position: relative; height: 250px; width: 100%; display: flex; justify-content: center;">
+                        <canvas id="doughnutChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        // 1. CẤU HÌNH BIỂU ĐỒ CỘT (Bar Chart)
+        const ctxBar = document.getElementById('barChart').getContext('2d');
+        new Chart(ctxBar, {
+            type: 'bar',
+            data: {
+                labels: ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'CN'],
+                datasets: [{
+                    label: 'Quãng đường (km)',
+                    data: [1200, 1900, 1500, 2200, 1800, 800, 500],
+                    backgroundColor: 'rgba(13, 110, 253, 0.7)', // Màu xanh primary Bootstrap
+                    borderColor: 'rgba(13, 110, 253, 1)',
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+
+        const ctxDoughnut = document.getElementById('doughnutChart').getContext('2d');
+        new Chart(ctxDoughnut, {
+            type: 'doughnut',
+            data: {
+                labels: ['Đang chạy', 'Dừng đỗ', 'Mất kết nối'],
+                datasets: [{
+                    data: [98, 20, 7],
+                    backgroundColor: [
+                        '#198754',
+                        '#ffc107',
+                        '#dc3545'
+                    ],
+                    borderWidth: 2,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' }
+                },
+                cutout: '65%'
+            }
+        });
+    </script>
+}
