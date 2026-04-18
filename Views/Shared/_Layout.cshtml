@@ -31,9 +31,23 @@
                         </li>
                     </ul>
                     <ul class="navbar-nav ms-auto">
-                        <li class="nav-item">
-                            <a class="nav-link btn btn-outline-primary btn-sm px-3" asp-area="" asp-controller="Home" asp-action="Login"><i class="fas fa-sign-in-alt"></i> Đăng nhập</a>
-                        </li>
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <li class="nav-item">
+                                <span class="nav-link text-dark me-2"><i class="fas fa-user-circle"></i> @User.FindFirst("FullName")?.Value</span>
+                            </li>
+                            <li class="nav-item">
+                                <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm px-3 shadow-sm"><i class="fas fa-sign-out-alt"></i> Đăng xuất</button>
+                                </form>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link btn btn-outline-primary btn-sm px-3 shadow-sm" asp-area="" asp-controller="Account" asp-action="Login"><i class="fas fa-sign-in-alt"></i> Đăng nhập</a>
+                            </li>
+                        }
                     </ul>
                 </div>
             </div>

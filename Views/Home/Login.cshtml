@@ -82,6 +82,13 @@
                 </div>
             }
 
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="alert alert-danger py-2 small">
+                    <i class="fas fa-exclamation-circle me-1"></i> @TempData["ErrorMessage"]
+                </div>
+            }
+
             <div id="loginForm">
                 <h5 class="fw-bold mb-4 text-center">Đăng Nhập Quản Trị</h5>
                 <form asp-controller="Account" asp-action="Login" method="post">

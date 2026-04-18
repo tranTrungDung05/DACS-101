@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using DACS.Models;
 
 namespace DACS.Models;
@@ -68,5 +68,11 @@ public class ApplicationDbContext : DbContext
         // --- Cấu hình Unique Index ---
         modelBuilder.Entity<PhuongTien>().HasIndex(p => p.BienSo).IsUnique();
         modelBuilder.Entity<ThietBiGPS>().HasIndex(t => t.MaImei).IsUnique();
+
+        // --- SEED DATA ---
+        modelBuilder.Entity<ChucVu>().HasData(
+            new ChucVu { IdChucVu = 1, TenChucVu = "Admin", MoTa = "Quản trị viên toàn quyền hệ thống" },
+            new ChucVu { IdChucVu = 2, TenChucVu = "Manager", MoTa = "Quản lý phương tiện" }
+        );
     }
 }
