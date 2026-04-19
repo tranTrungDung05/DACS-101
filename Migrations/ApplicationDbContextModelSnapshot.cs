@@ -53,7 +53,7 @@ namespace DACS.Migrations
 
                     b.HasIndex("PhuongTienIdFK");
 
-                    b.ToTable("ChiTietHopDongs");
+                    b.ToTable("ChiTietHopDongs", (string)null);
                 });
 
             modelBuilder.Entity("DACS.Models.ChiTietQuyen", b =>
@@ -76,7 +76,7 @@ namespace DACS.Migrations
 
                     b.HasIndex("QuyenIdQuyen");
 
-                    b.ToTable("ChiTietQuyens");
+                    b.ToTable("ChiTietQuyens", (string)null);
                 });
 
             modelBuilder.Entity("DACS.Models.ChiTietViPham", b =>
@@ -102,7 +102,7 @@ namespace DACS.Migrations
 
                     b.HasIndex("QuyDinhIdQuyDinh");
 
-                    b.ToTable("ChiTietViPhams");
+                    b.ToTable("ChiTietViPhams", (string)null);
                 });
 
             modelBuilder.Entity("DACS.Models.ChucVu", b =>
@@ -123,7 +123,7 @@ namespace DACS.Migrations
 
                     b.HasKey("IdChucVu");
 
-                    b.ToTable("ChucVus");
+                    b.ToTable("ChucVus", (string)null);
 
                     b.HasData(
                         new
@@ -172,7 +172,7 @@ namespace DACS.Migrations
 
                     b.HasIndex("ThietBiGPSIdThietBi");
 
-                    b.ToTable("DuLieuGPS");
+                    b.ToTable("DuLieuGPS", (string)null);
                 });
 
             modelBuilder.Entity("DACS.Models.HanhTrinh", b =>
@@ -202,7 +202,7 @@ namespace DACS.Migrations
 
                     b.HasIndex("PhuongTienIdPhuongTien");
 
-                    b.ToTable("HanhTrinhs");
+                    b.ToTable("HanhTrinhs", (string)null);
                 });
 
             modelBuilder.Entity("DACS.Models.HopDong", b =>
@@ -245,7 +245,7 @@ namespace DACS.Migrations
 
                     b.HasIndex("MaCccd");
 
-                    b.ToTable("HopDongs");
+                    b.ToTable("HopDongs", (string)null);
                 });
 
             modelBuilder.Entity("DACS.Models.KhachHang", b =>
@@ -270,7 +270,7 @@ namespace DACS.Migrations
 
                     b.HasKey("MaCccd");
 
-                    b.ToTable("KhachHangs");
+                    b.ToTable("KhachHangs", (string)null);
                 });
 
             modelBuilder.Entity("DACS.Models.PhieuViPham", b =>
@@ -313,7 +313,7 @@ namespace DACS.Migrations
 
                     b.HasIndex("KhachHangMaCccd");
 
-                    b.ToTable("PhieuViPhams");
+                    b.ToTable("PhieuViPhams", (string)null);
                 });
 
             modelBuilder.Entity("DACS.Models.PhuongTien", b =>
@@ -353,7 +353,7 @@ namespace DACS.Migrations
 
                     b.HasIndex("IdThietBi");
 
-                    b.ToTable("PhuongTiens");
+                    b.ToTable("PhuongTiens", (string)null);
                 });
 
             modelBuilder.Entity("DACS.Models.QuyDinh", b =>
@@ -377,7 +377,7 @@ namespace DACS.Migrations
 
                     b.HasKey("IdQuyDinh");
 
-                    b.ToTable("QuyDinhs");
+                    b.ToTable("QuyDinhs", (string)null);
                 });
 
             modelBuilder.Entity("DACS.Models.Quyen", b =>
@@ -398,7 +398,7 @@ namespace DACS.Migrations
 
                     b.HasKey("IdQuyen");
 
-                    b.ToTable("Quyens");
+                    b.ToTable("Quyens", (string)null);
                 });
 
             modelBuilder.Entity("DACS.Models.TaiKhoan", b =>
@@ -432,7 +432,7 @@ namespace DACS.Migrations
 
                     b.HasIndex("IdChucVu");
 
-                    b.ToTable("TaiKhoans");
+                    b.ToTable("TaiKhoans", (string)null);
 
                     b.HasData(
                         new
@@ -473,7 +473,7 @@ namespace DACS.Migrations
                     b.HasIndex("MaImei")
                         .IsUnique();
 
-                    b.ToTable("ThietBiGPS");
+                    b.ToTable("ThietBiGPS", (string)null);
                 });
 
             modelBuilder.Entity("DACS.Models.ChiTietHopDong", b =>

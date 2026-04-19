@@ -88,13 +88,14 @@
 
 @section Scripts {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         const db = {
             @foreach (var item in Model)
             {
                 var latestHanhTrinh = item.HanhTrinhs.OrderByDescending(h => h.NgayDi).FirstOrDefault();
                 var latestGPS = latestHanhTrinh?.DuLieuGPS.OrderByDescending(d => d.Timestamp).FirstOrDefault();
-                var waypoints = latestHanhTrinh?.DuLieuGPS.OrderBy(d => d.Timestamp).TakeLast(200).Select(d => $"[{d.ViDo}, {d.KinhDo}]");
+                var waypoints = latestHanhTrinh?.DuLieuGPS.OrderBy(d => d.Timestamp).TakeLast(200).Select(d => $"[{d.ViDo}, {d.KinhDo}, {d.TocDo}]");
                 
                 if (latestGPS != null) {
                     @: "@item.BienSo": {
@@ -237,20 +238,32 @@
                 
                 if (currentIdx >= route.length - 1) {
                     stopPlayback();
-                    alert("Xe đã về đến đích!");
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000,
+                        timerProgressBar: true,
+                        icon: 'success',
+                        title: 'Thông tin hành trình',
+                        text: 'Xe đã về đến đích!',
+                        iconColor: 'white',
+                        customClass: {
+                            popup: 'bg-success text-white'
+                        }
+                    });
                     currentIdx = 0;
-                    moveMarker.setLatLng(route[0]);
-                    map.panTo(route[0]);
-                    document.getElementById('lblProgress').innerText = 'Đã hoàn thành mô phỏng.';
+                    document.getElementById('lblProgress').innerText = 'Xe đã về đến đích. Đã hoàn thành mô phỏng.';
                     return;
                 }
 
                 let p = route[currentIdx];
-                moveMarker.setLatLng(p);
+                moveMarker.setLatLng([p[0], p[1]]);
                 
-                if (currentIdx % (speed * 2) === 0) map.panTo(p, {animate: true});
+                if (currentIdx % (speed * 2) === 0) map.panTo([p[0], p[1]], {animate: true});
                 
-                document.getElementById('lblProgress').innerText = `Tọa độ GPS: ${p[0].toFixed(5)} , ${p[1].toFixed(5)}`;
+                let speedInfo = p[2] !== undefined ? ` | Tốc độ: <span class="text-danger">${p[2].toFixed(1)} km/h</span>` : "";
+                document.getElementById('lblProgress').innerHTML = `Tọa độ GPS: ${p[0].toFixed(5)} , ${p[1].toFixed(5)}${speedInfo}`;
 
                 if (vInfo && currentIdx >= violationIndex && currentIdx < violationIndex + speed) {
                     let flag = L.marker(p, { 
