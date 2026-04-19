@@ -1,0 +1,173 @@
+@model DACS.Models.PhieuViPham
+
+@{
+    ViewData["Title"] = "Chi tiết vi phạm";
+}
+
+<style>
+    .detail-card { border-radius: 15px; border: none; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+    .header-accent { width: 4px; height: 20px; background: #007bff; border-radius: 10px; display: inline-block; margin-right: 10px; vertical-align: middle; }
+    .map-box { border-radius: 12px; overflow: hidden; border: 1px solid #eee; box-shadow: inset 0 0 10px rgba(0,0,0,0.05); }
+    .evidence-table thead th { background: #f8f9fa; font-size: 0.7rem; letter-spacing: 1px; color: #8898aa; border-bottom: 2px solid #eef2f7; }
+    .evidence-table tbody td { padding: 12px 15px; vertical-align: middle; }
+    .info-label { font-size: 0.75rem; font-weight: 700; color: #adb5bd; text-transform: uppercase; margin-bottom: 4px; }
+    .info-value { font-weight: 600; color: #32325d; }
+    .status-badge-lg { padding: 8px 16px; border-radius: 8px; font-weight: 700; font-size: 0.9rem; }
+</style>
+
+<div class="container-fluid pt-4 px-4">
+    <div class="mb-4">
+        <a asp-action="Index" class="text-decoration-none text-muted small fw-bold">
+            <i class="fas fa-chevron-left me-1"></i> TRỞ LẠI DANH SÁCH
+        </a>
+        <h3 class="fw-bold mt-2">Bằng chứng vi phạm #@Model.IdPhieuViPham</h3>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-4">
+            <div class="card detail-card mb-4">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-4 pb-2 border-bottom"><span class="header-accent"></span>Tóm tắt hồ sơ</h5>
+                    
+                    <div class="mb-4">
+                        <div class="info-label">Đối tượng vi phạm</div>
+                        <div class="d-flex align-items-center">
+                            <div class="bg-soft-primary p-3 rounded-3 me-3" style="background: #eef2ff;">
+                                <i class="fas fa-id-card text-primary fs-4"></i>
+                            </div>
+                            <div>
+                                <div class="info-value fs-5">@Model.KhachHang.HoTen</div>
+                                <div class="text-muted small">CCCD: @Model.KhachHang.MaCccd</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-6">
+                            <div class="info-label">Biển số xe</div>
+                            <div class="info-value text-primary">@Model.HanhTrinh.PhuongTien.BienSo</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="info-label">Ngày ghi nhận</div>
+                            <div class="info-value small">@Model.NgayViPham.ToString("dd/MM/yyyy HH:mm")</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="info-label">Tổng định mức xử phạt</div>
+                        <div class="text-danger fs-3 fw-800" style="font-weight: 850;">
+                            @Model.TienPhat.ToString("N0") <small class="fs-6">VNĐ</small>
+                        </div>
+                    </div>
+
+                    <div class="pt-2">
+                        @if (Model.TrangThai)
+                        {
+                            <div class="bg-warning text-white p-3 rounded-3 d-flex align-items-center justify-content-between shadow-sm">
+                                <span class="fw-bold"><i class="fas fa-clock me-2"></i> CHƯA THANH TOÁN</span>
+                                <i class="fas fa-arrow-right"></i>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="bg-success text-white p-3 rounded-3 d-flex align-items-center justify-content-between shadow-sm">
+                                <span class="fw-bold"><i class="fas fa-check-double me-2"></i> ĐÃ HOÀN TẤT</span>
+                                <i class="fas fa-shield-alt"></i>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card detail-card mb-4 overflow-hidden">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-map-marked-alt me-2 text-danger"></i> Dữ liệu trích xuất từ vệ tinh</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div style="height: 350px;" id="violationMap" class="map-box m-3"></div>
+                    
+                    <div class="p-3">
+                        <div class="table-responsive" style="max-height: 350px;">
+                            <table class="table evidence-table table-hover mb-0">
+                                <thead class="sticky-top">
+                                    <tr>
+                                        <th>THỜI ĐIỂM</th>
+                                        <th>TỐC ĐỘ GHI NHẬN</th>
+                                        <th>TỌA ĐỘ CHÍNH XÁC</th>
+                                        <th class="text-end">QUY ĐỊNH</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var ct in Model.ChiTietViPhams.OrderByDescending(c => c.ThoiGianXayRa))
+                                    {
+                                        <tr>
+                                            <td class="fw-bold text-dark">@ct.ThoiGianXayRa.ToString("HH:mm:ss")</td>
+                                            <td>
+                                                <span class="badge bg-soft-danger text-danger px-2 py-1" style="background: #fff5f5; border: 1px solid #ffd5d5;">
+                                                    <i class="fas fa-tachometer-alt me-1"></i> @ct.TocDoViPham.ToString("N1") km/h
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <small class="text-muted"><i class="fas fa-location-arrow small"></i> @ct.ViDo.ToString("F5"), @ct.KinhDo.ToString("F5")</small>
+                                            </td>
+                                            <td class="text-end">
+                                                <span class="small text-secondary fw-500">@ct.QuyDinh.TenQuyDinh</span>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        $(document).ready(function () {
+            const map = L.map('violationMap', {
+                scrollWheelZoom: false
+            }).setView([10.8, 106.7], 13);
+            
+            L.tileLayer('https://{s}.tile.osm.org/{z}/{x}/{y}.png').addTo(map);
+
+            const violationPoints = [
+                @foreach (var ct in Model.ChiTietViPhams)
+                {
+                    @:[@ct.ViDo, @ct.KinhDo, @ct.TocDoViPham, "@ct.ThoiGianXayRa.ToString("HH:mm:ss")"],
+                }
+            ];
+
+            if (violationPoints.length > 0) {
+                const markers = [];
+                violationPoints.forEach(p => {
+                    const m = L.circleMarker([p[0], p[1]], {
+                        radius: 8,
+                        fillColor: "#dc3545",
+                        color: "#fff",
+                        weight: 2,
+                        opacity: 1,
+                        fillOpacity: 0.8
+                    }).addTo(map).bindPopup(`
+                        <div class="text-center">
+                            <b class="text-danger">VI PHẠM QUÁ TỐC ĐỘ</b><br/>
+                            <span class="fs-6">${p[2].toFixed(1)} km/h</span><br/>
+                            <small class="text-muted">${p[3]}</small>
+                        </div>
+                    `);
+                    markers.push(m);
+                });
+
+                const group = new L.featureGroup(markers);
+                map.fitBounds(group.getBounds().pad(0.3));
+            }
+        });
+    </script>
+}

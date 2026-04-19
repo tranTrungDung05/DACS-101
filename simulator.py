@@ -53,6 +53,10 @@ def simulate_vehicle(config):
         lng, lat = point
         speed = random.uniform(30, 60)
         
+        # Thỉnh thoảng cho xe 51H chạy quá tốc độ (Id: 13) để test vi phạm
+        if vehicle_id == 13 and random.random() < 0.15: # 15% xác suất
+            speed = random.uniform(85, 110)
+        
         payload = {
             "VehicleID": vehicle_id,
             "Latitude": lat,

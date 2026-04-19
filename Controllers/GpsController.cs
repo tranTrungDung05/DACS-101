@@ -12,11 +12,13 @@ public class GpsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly IHubContext<GpsHub> _hubContext;
+    private readonly IConfiguration _configuration;
 
-    public GpsController(ApplicationDbContext context, IHubContext<GpsHub> hubContext)
+    public GpsController(ApplicationDbContext context, IHubContext<GpsHub> hubContext, IConfiguration configuration)
     {
         _context = context;
         _hubContext = hubContext;
+        _configuration = configuration;
     }
 
     // POST: api/Gps/Update
@@ -40,14 +42,12 @@ public class GpsController : ControllerBase
         }
 
         // 3. Kiểm tra trạng thái phương tiện
-        // Nếu xe "Sẵn sàng" (True) -> Đang ở bãi, không cập nhật GPS.
-        // Chỉ cập nhật khi xe "Đang bận" (False) -> Đang được sử dụng/di chuyển.
         if (vehicle.TrangThai)
         {
             return BadRequest(new { status = "Error", message = $"Phương tiện {vehicle.BienSo} đang ở trạng thái sẵn sàng (tại bãi), không nhận cập nhật hành trình." });
         }
 
-        // 4. Tìm hoặc tạo HanhTrinh cho xe (Lấy hành trình mới nhất đang active)
+        // 4. Tìm hoặc tạo HanhTrinh cho xe
         var journey = vehicle.HanhTrinhs
             .OrderByDescending(h => h.NgayDi)
             .FirstOrDefault(h => h.TrangThai == true);
@@ -66,7 +66,7 @@ public class GpsController : ControllerBase
             await _context.SaveChangesAsync();
         }
 
-        // 3. Tính toán quãng đường (nếu có điểm GPS trước đó)
+        // 5. Tính toán quãng đường
         var lastGps = await _context.DuLieuGPS
             .Where(d => d.HanhTrinhIdHanhTrinh == journey.IdHanhTrinh)
             .OrderByDescending(d => d.Timestamp)
@@ -81,10 +81,9 @@ public class GpsController : ControllerBase
             journey.TongQuangDuong += (decimal)dist;
         }
 
-        // 4. Cập nhật thời điểm mới nhất của hành trình
         journey.NgayDen = DateTime.Now;
 
-        // 5. Lưu dữ liệu GPS vào DB
+        // 6. Lưu dữ liệu GPS vào DB
         var gpsData = new DuLieuGPS
         {
             HanhTrinhIdHanhTrinh = journey.IdHanhTrinh,
@@ -95,9 +94,80 @@ public class GpsController : ControllerBase
             Timestamp = DateTime.Now
         };
         _context.DuLieuGPS.Add(gpsData);
+
+        // --- XỬ LÝ VI PHẠM TỐC ĐỘ ---
+        var maxSpeed = _configuration.GetValue<double>("ViolationRules:MaxSpeed", 80.0);
+        if (request.Speed > maxSpeed)
+        {
+            // Tìm khách hàng hiện tại của xe qua hợp đồng đang hoạt động
+            var activeContract = await _context.HopDongs
+                .Include(h => h.KhachHang) // Load KhachHang
+                .Include(h => h.ChiTietHopDongs)
+                .Where(h => h.TrangThai && h.ChiTietHopDongs.Any(ct => ct.IdPhuongTien == vehicle.IdPhuongTien))
+                .OrderByDescending(h => h.NgayTao)
+                .FirstOrDefaultAsync();
+
+            if (activeContract != null)
+            {
+                // Tìm quy định "Quá tốc độ"
+                var speedingRule = await _context.QuyDinhs
+                    .FirstOrDefaultAsync(q => q.TenQuyDinh.Contains("tốc độ"));
+                
+                if (speedingRule == null)
+                {
+                    speedingRule = new QuyDinh { TenQuyDinh = "Quá tốc độ quy định", MucPhat = 500000, MoTa = "Vi phạm vượt quá tốc độ cho phép" };
+                    _context.QuyDinhs.Add(speedingRule);
+                    await _context.SaveChangesAsync();
+                }
+
+                // Kiểm tra/Tạo Phiếu vi phạm cho hành trình này
+                var violationTicket = await _context.PhieuViPhams
+                    .FirstOrDefaultAsync(p => p.HanhTrinh.IdHanhTrinh == journey.IdHanhTrinh && p.KhachHang.MaCccd == activeContract.MaCccd);
+
+                if (violationTicket == null)
+                {
+                    violationTicket = new PhieuViPham
+                    {
+                        HanhTrinh = journey,
+                        KhachHang = activeContract.KhachHang,
+                        NgayViPham = DateTime.Now,
+                        TienPhat = speedingRule.MucPhat,
+                        MoTa = "Phát hiện vi phạm trong hành trình",
+                        TrangThai = true
+                    };
+                    _context.PhieuViPhams.Add(violationTicket);
+                    await _context.SaveChangesAsync();
+                }
+                else
+                {
+                    // Chỉ cộng thêm tiền phạt nếu đây là một lần ghi nhận mới (cách nhau ít nhất vài giây)
+                    violationTicket.TienPhat += speedingRule.MucPhat;
+                }
+
+                // Ghi nhận Chi tiết vi phạm (Lưu lại bằng chứng: Tốc độ và Tọa độ)
+                var violationDetail = new ChiTietViPham
+                {
+                    PhieuViPhamIdPhieuViPham = violationTicket.IdPhieuViPham,
+                    QuyDinhIdQuyDinh = speedingRule.IdQuyDinh,
+                    TocDoViPham = (decimal)request.Speed,
+                    ViDo = (decimal)request.Latitude,
+                    KinhDo = (decimal)request.Longitude,
+                    ThoiGianXayRa = DateTime.Now
+                };
+                _context.ChiTietViPhams.Add(violationDetail);
+
+                // Phát SignalR cảnh báo vi phạm
+                await _hubContext.Clients.All.SendAsync("ReceiveViolationAlert", 
+                    vehicle.BienSo, 
+                    "Quá tốc độ", 
+                    request.Speed, 
+                    maxSpeed);
+            }
+        }
+
         await _context.SaveChangesAsync();
 
-        // 6. Phát qua SignalR gửi biển số xe
+        // 7. Phát qua SignalR gửi biển số xe
         await _hubContext.Clients.All.SendAsync("ReceiveLocationUpdate", 
             vehicle.BienSo, 
             request.Latitude, 

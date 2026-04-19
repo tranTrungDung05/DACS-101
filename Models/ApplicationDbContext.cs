@@ -76,6 +76,30 @@ public class ApplicationDbContext : DbContext
             entity.HasOne(h => h.TaiKhoan).WithMany(t => t.HopDongs).HasForeignKey(h => h.IdTaiKhoan);
         });
 
+        modelBuilder.Entity<PhieuViPham>(entity => {
+            entity.HasOne(p => p.HanhTrinh)
+                .WithMany(h => h.PhieuViPhams)
+                .HasForeignKey(p => p.HanhTrinhIdHanhTrinh);
+
+            entity.HasOne(p => p.KhachHang)
+                .WithMany(k => k.PhieuViPhams)
+                .HasForeignKey(p => p.KhachHangMaCccd);
+        });
+
+        // --- CẤU HÌNH MAPPING CHO CHI TIẾT VI PHẠM ---
+        modelBuilder.Entity<ChiTietViPham>(entity => {
+            entity.HasKey(ct => new { ct.PhieuViPhamIdPhieuViPham, ct.QuyDinhIdQuyDinh, ct.ThoiGianXayRa });
+
+            entity.HasOne(ct => ct.PhieuViPham)
+                .WithMany(p => p.ChiTietViPhams)
+                .HasForeignKey(ct => ct.PhieuViPhamIdPhieuViPham)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(ct => ct.QuyDinh)
+                .WithMany(q => q.ChiTietViPhams)
+                .HasForeignKey(ct => ct.QuyDinhIdQuyDinh);
+        });
+
         // --- CẤU HÌNH MAPPING CHO CHI TIẾT HỢP ĐỒNG ---
         modelBuilder.Entity<ChiTietHopDong>(entity => {
             entity.HasKey(ct => new { ct.IdPhuongTien, ct.IdHopDong });
@@ -85,7 +109,6 @@ public class ApplicationDbContext : DbContext
 
         // --- Cấu hình Khóa chính phức hợp cho các bảng trung gian ---
         modelBuilder.Entity<ChiTietQuyen>().HasKey(ct => new { ct.IdChucVu, ct.IdQuyen });
-        modelBuilder.Entity<ChiTietViPham>().HasKey(ct => new { ct.IdPhieuViPham, ct.IdQuyDinh });
 
         // Khóa chính không theo quy ước
         modelBuilder.Entity<KhachHang>().HasKey(kh => kh.MaCccd);

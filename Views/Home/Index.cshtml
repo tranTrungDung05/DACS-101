@@ -141,7 +141,6 @@
             if (item) {
                 const badge = item.querySelector('.badge');
                 if (badge) {
-                    // Cập nhật màu dấu chấm trạng thái nếu cần, nhưng giữ nguyên nhãn Sẵn sàng/Đang bận
                     const dot = item.querySelector('.status-dot');
                     if (dot) {
                         dot.className = speed > 0 ? "status-dot status-online" : "status-dot status-offline";
@@ -150,6 +149,34 @@
                 const updateTime = item.querySelector('.text-muted');
                 if (updateTime) updateTime.innerText = "Cập nhật: Vừa xong";
             }
+        });
+
+        connection.on("ReceiveViolationAlert", (plate, rule, speed, limit) => {
+            const now = new Date().toLocaleTimeString();
+            console.warn(`VIOLATION: ${plate} - ${rule} (${speed} > ${limit}) at ${now}`);
+            
+            Swal.fire({
+                icon: 'error',
+                title: 'PHÁT HIỆN VI PHẠM!',
+                html: `
+                    <div class="text-start">
+                        <p>Xe: <b>${plate}</b></p>
+                        <p>Lỗi: <span class="text-danger fw-bold">${rule}</span></p>
+                        <p>Tốc độ: <span class="badge bg-danger">${speed.toFixed(1)} km/h</span> (Hạn mức: ${limit})</p>
+                        <hr class="my-1">
+                        <small class="text-muted"><i class="far fa-clock"></i> Thời gian: ${now}</small>
+                    </div>
+                `,
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 4000,
+                timerProgressBar: true,
+                background: '#fff0f0',
+                showClass: {
+                    popup: 'animate__animated animate__shakeX'
+                }
+            });
         });
 
         connection.start().catch(err => console.error(err));

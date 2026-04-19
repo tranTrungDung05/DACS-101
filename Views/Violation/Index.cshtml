@@ -1,0 +1,153 @@
+@model IEnumerable<DACS.Models.PhieuViPham>
+
+@{
+    ViewData["Title"] = "Quản lý vi phạm";
+}
+
+<style>
+    .violation-card { border-radius: 15px; overflow: hidden; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+    .violation-header { background: linear-gradient(135deg, #1a1a1a 0%, #343a40 100%); padding: 20px 25px; }
+    .table thead th { border-top: none; text-transform: uppercase; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; color: #6c757d; padding: 15px 20px; }
+    .table tbody td { padding: 18px 20px; vertical-align: middle; border-bottom: 1px solid #f8f9fa; }
+    .plate-badge { background: #eef2f7; color: #007bff; padding: 6px 12px; border-radius: 6px; font-weight: 700; border: 1px solid #d1e1f5; }
+    .amount-text { color: #dc3545; font-weight: 800; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .status-badge { padding: 6px 12px; border-radius: 50px; font-size: 0.8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; }
+    .status-unpaid { background-color: #fff4e5; color: #b7791f; border: 1px solid #fbd38d; }
+    .status-paid { background-color: #f0fff4; color: #2f855a; border: 1px solid #9ae6b4; }
+    .action-btn { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; transition: 0.2s; }
+    .action-btn:hover { transform: translateY(-2px); }
+    .details-btn { color: #007bff; background: #ebf5ff; border: 1px solid #bad9ff; }
+    .confirm-btn { color: #28a745; background: #e6ffed; border: 1px solid #b7ebc6; }
+    .undo-btn { color: #ffc107; background: #fffbeb; border: 1px solid #fde68a; }
+</style>
+
+<div class="container-fluid pt-4 px-4">
+    <div class="d-flex justify-content-between align-items-end mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="/" class="text-muted">Home</a></li>
+                    <li class="breadcrumb-item active">Quản lý vi phạm</li>
+                </ol>
+            </nav>
+            <h3 class="fw-bold mb-0">Trung tâm xử lý vi phạm</h3>
+        </div>
+        <div class="text-end">
+            <span class="badge bg-danger rounded-pill px-3 py-2 shadow-sm">
+                <i class="fas fa-file-invoice-dollar me-1"></i> @Model.Count() Phiếu phạt hiện hành
+            </span>
+        </div>
+    </div>
+
+    <div class="card violation-card">
+        <div class="card-header violation-header border-0">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h5 class="text-white mb-0 font-weight-bold">
+                        <i class="fas fa-list-ul me-2 text-warning"></i> Danh sách ghi nhận
+                    </h5>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table mb-0" id="violationTable">
+                    <thead>
+                        <tr>
+                            <th>Biển số xe</th>
+                            <th>Khách hàng & Hợp đồng</th>
+                            <th>Thời điểm</th>
+                            <th>Mức nộp phạt</th>
+                            <th>Trạng thái</th>
+                            <th class="text-end">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="plate-badge">@item.HanhTrinh.PhuongTien.BienSo</div>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-3 shadow-sm" style="width: 42px; height: 42px;">
+                                            <i class="fas fa-user text-secondary"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-dark">@item.KhachHang.HoTen</div>
+                                            <div class="text-muted small">CCCD: @item.KhachHang.MaCccd</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="text-dark fw-500">@item.NgayViPham.ToString("dd/MM/yyyy")</div>
+                                    <div class="text-muted small">@item.NgayViPham.ToString("HH:mm")</div>
+                                </td>
+                                <td>
+                                    <div class="amount-text fs-5">@item.TienPhat.ToString("N0") <small>VNĐ</small></div>
+                                </td>
+                                <td>
+                                    @if (item.TrangThai)
+                                    {
+                                        <div class="status-badge status-unpaid">
+                                            <i class="fas fa-exclamation-circle"></i> Chưa nộp
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="status-badge status-paid">
+                                            <i class="fas fa-check-circle"></i> Đã nộp
+                                        </div>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-flex justify-content-end gap-2">
+                                        <a asp-action="Details" asp-route-id="@item.IdPhieuViPham" class="action-btn details-btn" title="Xem chi tiết bằng chứng">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <form asp-action="UpdateStatus" method="post" class="m-0">
+                                            <input type="hidden" name="id" value="@item.IdPhieuViPham" />
+                                            <input type="hidden" name="trangThai" value="@(!item.TrangThai ? "true" : "false")" />
+                                            @if (item.TrangThai)
+                                            {
+                                                <button type="submit" class="btn action-btn confirm-btn p-0" title="Xác nhận đã thu tiền">
+                                                    <i class="fas fa-check-bold"></i>
+                                                    <i class="fas fa-hand-holding-usd"></i>
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button type="submit" class="btn action-btn undo-btn p-0" title="Hoàn tác">
+                                                    <i class="fas fa-undo"></i>
+                                                </button>
+                                            }
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $('#violationTable').DataTable({
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json"
+                },
+                "order": [[2, "desc"]],
+                "pageLength": 10,
+                "dom": '<"d-flex justify-content-between align-items-center p-3"<"small"l><"small"f>>rt<"d-flex justify-content-between align-items-center p-3"<"small"i><"small"p>>'
+            });
+        });
+    </script>
+}
