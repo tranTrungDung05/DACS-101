@@ -12,13 +12,13 @@ INTERVAL = 3    # Khoảng cách giữa các lần gửi (giây)
 # Danh sách cấu hình xe giả lập (Dùng ID thực tế từ DB: 13, 14)
 VEHICLES_CONFIG = [
     {
-        "id": 13,
+        "id": 1,
         "name": "Xe 51H-999.88 (Quận 1 -> Quận 7)",
         "start": "106.6983,10.7715", # Long,Lat
         "end": "106.7011,10.7291"
     },
     {
-        "id": 14,
+        "id": 2,
         "name": "Xe 21A-111.22 (Nhà Duy -> HUTECH)",
         "start": "106.73417,10.86778", # Tam Bình
         "end": "106.7188,10.7960"    # Đại học HUTECH
@@ -54,7 +54,7 @@ def simulate_vehicle(config):
         speed = random.uniform(30, 60)
         
         # Thỉnh thoảng cho xe 51H chạy quá tốc độ (Id: 13) để test vi phạm
-        if vehicle_id == 13 and random.random() < 0.15: # 15% xác suất
+        if vehicle_id == 1 and random.random() < 0.15: # 15% xác suất
             speed = random.uniform(85, 110)
         
         payload = {

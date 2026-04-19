@@ -79,11 +79,11 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<PhieuViPham>(entity => {
             entity.HasOne(p => p.HanhTrinh)
                 .WithMany(h => h.PhieuViPhams)
-                .HasForeignKey(p => p.HanhTrinhIdHanhTrinh);
+                .HasForeignKey(p => p.IdHanhTrinh);
 
             entity.HasOne(p => p.KhachHang)
                 .WithMany(k => k.PhieuViPhams)
-                .HasForeignKey(p => p.KhachHangMaCccd);
+                .HasForeignKey(p => p.MaCccd);
         });
 
         // --- CẤU HÌNH MAPPING CHO CHI TIẾT VI PHẠM ---
