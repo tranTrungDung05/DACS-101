@@ -17,12 +17,12 @@ VEHICLES_CONFIG = [
         "start": "106.6983,10.7715", # Long,Lat
         "end": "106.7011,10.7291"
     },
-    {
-        "id": 2,
-        "name": "Xe 21A-111.22 (Nhà Duy -> HUTECH)",
-        "start": "106.73417,10.86778", # Tam Bình
-        "end": "106.7188,10.7960"    # Đại học HUTECH
-    }
+    # {
+    #     "id": 2,
+    #     "name": "Xe 21A-111.22 (Nhà Duy -> HUTECH)",
+    #     "start": "106.73417,10.86778", # Tam Bình
+    #     "end": "106.7188,10.7960"    # Đại học HUTECH
+    # }
 ]
 
 def get_route(config):
