@@ -120,6 +120,12 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.TocDo).HasColumnType("decimal(18, 2)");
         });
 
+        modelBuilder.Entity<ChiTietViPham>(entity => {
+            entity.Property(e => e.KinhDo).HasColumnType("decimal(11, 8)");
+            entity.Property(e => e.ViDo).HasColumnType("decimal(11, 8)");
+            entity.Property(e => e.TocDoViPham).HasColumnType("decimal(18, 2)");
+        });
+
         modelBuilder.Entity<HopDong>().Property(h => h.TongTien).HasColumnType("decimal(18, 2)");
         modelBuilder.Entity<PhieuViPham>().Property(p => p.TienPhat).HasColumnType("decimal(18, 2)");
         modelBuilder.Entity<QuyDinh>().Property(q => q.MucPhat).HasColumnType("decimal(18, 2)");
