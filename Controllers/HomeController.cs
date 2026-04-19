@@ -44,6 +44,30 @@ public class HomeController : Controller
         ViewBag.ReadyCount = await _context.PhuongTiens.CountAsync(p => p.TrangThai == true);
         ViewBag.BusyCount = await _context.PhuongTiens.CountAsync(p => p.TrangThai == false);
 
+        // Weekly Distance Chart Data
+        DateTime startOfWeek = today.AddDays(-(int)today.DayOfWeek + (int)DayOfWeek.Monday);
+        if (today.DayOfWeek == DayOfWeek.Sunday) startOfWeek = today.AddDays(-6);
+        
+        var weeklyData = await _context.DuLieuGPS
+            .Where(d => d.Timestamp.Date >= startOfWeek.Date && d.Timestamp.Date < startOfWeek.AddDays(7).Date)
+            .GroupBy(d => d.Timestamp.Date)
+            .Select(g => new { Date = g.Key, Count = g.Count() })
+            .ToListAsync();
+
+        var labels = new string[7];
+        var signalData = new int[7];
+        string[] dayNames = { "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật" };
+
+        for (int i = 0; i < 7; i++)
+        {
+            var date = startOfWeek.AddDays(i);
+            labels[i] = dayNames[i];
+            signalData[i] = weeklyData.FirstOrDefault(d => d.Date == date.Date)?.Count ?? 0;
+        }
+
+        ViewBag.WeeklyLabels = labels;
+        ViewBag.WeeklyDistances = signalData;
+
         return View();
     }
 

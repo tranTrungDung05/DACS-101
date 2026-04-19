@@ -58,16 +58,33 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<HanhTrinh>()
             .HasOne(h => h.PhuongTien)
             .WithMany(p => p.HanhTrinhs)
-            .HasForeignKey(h => h.PhuongTienIdPhuongTien);
+            .HasForeignKey(h => h.IdPhuongTien);
 
-        modelBuilder.Entity<DuLieuGPS>()
-            .HasOne(d => d.HanhTrinh)
-            .WithMany(h => h.DuLieuGPS)
-            .HasForeignKey(d => d.HanhTrinhIdHanhTrinh);
+        modelBuilder.Entity<DuLieuGPS>(entity => {
+            entity.HasOne(d => d.HanhTrinh)
+                .WithMany(h => h.DuLieuGPS)
+                .HasForeignKey(d => d.HanhTrinhIdHanhTrinh);
+
+            entity.HasOne(d => d.ThietBiGPS)
+                .WithMany(t => t.DuLieuGPS)
+                .HasForeignKey(d => d.IdThietBi);
+        });
+
+        // --- CẤU HÌNH MAPPING CHO HỢP ĐỒNG ---
+        modelBuilder.Entity<HopDong>(entity => {
+            entity.HasOne(h => h.KhachHang).WithMany(k => k.HopDongs).HasForeignKey(h => h.MaCccd);
+            entity.HasOne(h => h.TaiKhoan).WithMany(t => t.HopDongs).HasForeignKey(h => h.IdTaiKhoan);
+        });
+
+        // --- CẤU HÌNH MAPPING CHO CHI TIẾT HỢP ĐỒNG ---
+        modelBuilder.Entity<ChiTietHopDong>(entity => {
+            entity.HasKey(ct => new { ct.IdPhuongTien, ct.IdHopDong });
+            entity.HasOne(ct => ct.PhuongTien).WithMany(p => p.ChiTietHopDongs).HasForeignKey(ct => ct.IdPhuongTien);
+            entity.HasOne(ct => ct.HopDong).WithMany(h => h.ChiTietHopDongs).HasForeignKey(ct => ct.IdHopDong);
+        });
 
         // --- Cấu hình Khóa chính phức hợp cho các bảng trung gian ---
         modelBuilder.Entity<ChiTietQuyen>().HasKey(ct => new { ct.IdChucVu, ct.IdQuyen });
-        modelBuilder.Entity<ChiTietHopDong>().HasKey(ct => new { ct.IdPhuongTien, ct.IdHopDong });
         modelBuilder.Entity<ChiTietViPham>().HasKey(ct => new { ct.IdPhieuViPham, ct.IdQuyDinh });
 
         // Khóa chính không theo quy ước

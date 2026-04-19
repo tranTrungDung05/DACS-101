@@ -25,14 +25,29 @@ public class GpsController : ControllerBase
     {
         if (request == null) return BadRequest();
 
-        // 1. Tìm phương tiện theo ID
+        // 1. Tìm phương tiện theo ID (Bao gồm cả thiết bị và hành trình)
         var vehicle = await _context.PhuongTiens
             .Include(p => p.HanhTrinhs)
+            .Include(p => p.ThietBiGPS)
             .FirstOrDefaultAsync(p => p.IdPhuongTien == request.VehicleID);
 
         if (vehicle == null) return NotFound($"Vehicle ID {request.VehicleID} not found.");
 
-        // 2. Tìm hoặc tạo HanhTrinh cho xe (Lấy hành trình mới nhất đang active)
+        // 2. Kiểm tra nếu thiết bị GPS đang tắt
+        if (vehicle.ThietBiGPS == null || !vehicle.ThietBiGPS.TrangThai)
+        {
+            return BadRequest(new { status = "Error", message = $"Thiết bị GPS của xe {vehicle.BienSo} đang tắt hoặc không khả dụng." });
+        }
+
+        // 3. Kiểm tra trạng thái phương tiện
+        // Nếu xe "Sẵn sàng" (True) -> Đang ở bãi, không cập nhật GPS.
+        // Chỉ cập nhật khi xe "Đang bận" (False) -> Đang được sử dụng/di chuyển.
+        if (vehicle.TrangThai)
+        {
+            return BadRequest(new { status = "Error", message = $"Phương tiện {vehicle.BienSo} đang ở trạng thái sẵn sàng (tại bãi), không nhận cập nhật hành trình." });
+        }
+
+        // 4. Tìm hoặc tạo HanhTrinh cho xe (Lấy hành trình mới nhất đang active)
         var journey = vehicle.HanhTrinhs
             .OrderByDescending(h => h.NgayDi)
             .FirstOrDefault(h => h.TrangThai == true);
@@ -41,7 +56,7 @@ public class GpsController : ControllerBase
         {
             journey = new HanhTrinh
             {
-                PhuongTienIdPhuongTien = vehicle.IdPhuongTien,
+                IdPhuongTien = vehicle.IdPhuongTien,
                 NgayDi = DateTime.Now,
                 NgayDen = DateTime.Now,
                 TongQuangDuong = 0,
@@ -73,7 +88,7 @@ public class GpsController : ControllerBase
         var gpsData = new DuLieuGPS
         {
             HanhTrinhIdHanhTrinh = journey.IdHanhTrinh,
-            ThietBiGPSIdThietBi = vehicle.IdThietBi,
+            IdThietBi = vehicle.IdThietBi,
             ViDo = (decimal)request.Latitude,
             KinhDo = (decimal)request.Longitude,
             TocDo = (decimal)request.Speed,

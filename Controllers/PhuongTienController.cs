@@ -29,7 +29,10 @@ namespace DACS.Controllers
         // GET: PhuongTien/Create
         public async Task<IActionResult> Create()
         {
-            ViewBag.IdThietBi = new SelectList(await _context.ThietBiGPS.ToListAsync(), "IdThietBi", "MaImei");
+            var availableGps = await _context.ThietBiGPS
+                .Where(t => !t.PhuongTiens.Any())
+                .ToListAsync();
+            ViewBag.IdThietBi = new SelectList(availableGps, "IdThietBi", "MaImei");
             return View();
         }
 
@@ -44,7 +47,10 @@ namespace DACS.Controllers
                 if (await _context.PhuongTiens.AnyAsync(p => p.BienSo == vehicle.BienSo))
                 {
                     ModelState.AddModelError("BienSo", "Biển số xe này đã tồn tại trong hệ thống.");
-                    ViewBag.IdThietBi = new SelectList(await _context.ThietBiGPS.ToListAsync(), "IdThietBi", "MaImei", vehicle.IdThietBi);
+                    var availableGpsOnErr = await _context.ThietBiGPS
+                        .Where(t => !t.PhuongTiens.Any())
+                        .ToListAsync();
+                    ViewBag.IdThietBi = new SelectList(availableGpsOnErr, "IdThietBi", "MaImei", vehicle.IdThietBi);
                     return View(vehicle);
                 }
 
@@ -53,7 +59,10 @@ namespace DACS.Controllers
                 TempData["SuccessMessage"] = "Thêm phương tiện mới thành công!";
                 return RedirectToAction(nameof(Index));
             }
-            ViewBag.IdThietBi = new SelectList(await _context.ThietBiGPS.ToListAsync(), "IdThietBi", "MaImei", vehicle.IdThietBi);
+            var availableGpsFinal = await _context.ThietBiGPS
+                .Where(t => !t.PhuongTiens.Any())
+                .ToListAsync();
+            ViewBag.IdThietBi = new SelectList(availableGpsFinal, "IdThietBi", "MaImei", vehicle.IdThietBi);
             return View(vehicle);
         }
 
@@ -65,7 +74,10 @@ namespace DACS.Controllers
             var vehicle = await _context.PhuongTiens.FindAsync(id);
             if (vehicle == null) return NotFound();
 
-            ViewBag.IdThietBi = new SelectList(await _context.ThietBiGPS.ToListAsync(), "IdThietBi", "MaImei", vehicle.IdThietBi);
+            var availableGps = await _context.ThietBiGPS
+                .Where(t => !t.PhuongTiens.Any() || t.IdThietBi == vehicle.IdThietBi)
+                .ToListAsync();
+            ViewBag.IdThietBi = new SelectList(availableGps, "IdThietBi", "MaImei", vehicle.IdThietBi);
             return View(vehicle);
         }
 
@@ -84,7 +96,10 @@ namespace DACS.Controllers
                     if (await _context.PhuongTiens.AnyAsync(p => p.BienSo == vehicle.BienSo && p.IdPhuongTien != id))
                     {
                         ModelState.AddModelError("BienSo", "Biển số xe này đã tồn tại trong hệ thống.");
-                        ViewBag.IdThietBi = new SelectList(await _context.ThietBiGPS.ToListAsync(), "IdThietBi", "MaImei", vehicle.IdThietBi);
+                        var availableGpsOnErr = await _context.ThietBiGPS
+                            .Where(t => !t.PhuongTiens.Any() || t.IdThietBi == vehicle.IdThietBi)
+                            .ToListAsync();
+                        ViewBag.IdThietBi = new SelectList(availableGpsOnErr, "IdThietBi", "MaImei", vehicle.IdThietBi);
                         return View(vehicle);
                     }
 
@@ -99,7 +114,10 @@ namespace DACS.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            ViewBag.IdThietBi = new SelectList(await _context.ThietBiGPS.ToListAsync(), "IdThietBi", "MaImei", vehicle.IdThietBi);
+            var availableGpsFinal = await _context.ThietBiGPS
+                .Where(t => !t.PhuongTiens.Any() || t.IdThietBi == vehicle.IdThietBi)
+                .ToListAsync();
+            ViewBag.IdThietBi = new SelectList(availableGpsFinal, "IdThietBi", "MaImei", vehicle.IdThietBi);
             return View(vehicle);
         }
 

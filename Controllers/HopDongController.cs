@@ -56,11 +56,24 @@ public class HopDongController : Controller
         return View();
     }
 
-    // POST: HopDong/Create
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(HopDong contract, List<ChiTietHopDong> details)
     {
+        // Xóa các lỗi validation của các navigation properties (vì không được sửa Model để thêm [ValidateNever])
+        ModelState.Remove("TaiKhoan");
+        ModelState.Remove("KhachHang");
+        ModelState.Remove("ChiTietHopDongs");
+
+        if (details != null)
+        {
+            for (int i = 0; i < details.Count; i++)
+            {
+                ModelState.Remove($"details[{i}].PhuongTien");
+                ModelState.Remove($"details[{i}].HopDong");
+            }
+        }
+
         if (details == null || !details.Any())
         {
             ModelState.AddModelError("", "Vui lòng thêm ít nhất một phương tiện vào hợp đồng.");

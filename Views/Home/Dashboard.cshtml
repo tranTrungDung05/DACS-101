@@ -58,12 +58,20 @@
             </div>
         </div>
 
-        <div class="row g-4 mb-4 justify-content-center">
-            <div class="col-lg-6">
+        <div class="row g-4 mb-4">
+            <div class="col-lg-4">
                 <div class="chart-card">
                     <h5 class="chart-title"><i class="fas fa-chart-pie me-2 text-success"></i>Tỉ lệ trạng thái xe</h5>
                     <div style="position: relative; height: 300px; width: 100%; display: flex; justify-content: center;">
                         <canvas id="doughnutChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-8">
+                <div class="chart-card">
+                    <h5 class="chart-title"><i class="fas fa-satellite me-2 text-primary"></i>Số lượng tín hiệu GPS nhận được trong tuần</h5>
+                    <div style="position: relative; height: 300px; width: 100%;">
+                        <canvas id="weeklySignalChart"></canvas>
                     </div>
                 </div>
             </div>
@@ -97,6 +105,42 @@
                     legend: { position: 'bottom' }
                 },
                 cutout: '65%'
+            }
+        });
+        // Weekly Signal Chart
+        const ctxWeekly = document.getElementById('weeklySignalChart').getContext('2d');
+        new Chart(ctxWeekly, {
+            type: 'bar',
+            data: {
+                labels: @Html.Raw(Json.Serialize(ViewBag.WeeklyLabels)),
+                datasets: [{
+                    label: 'Số lượng tín hiệu',
+                    data: @Html.Raw(Json.Serialize(ViewBag.WeeklyDistances)),
+                    backgroundColor: 'rgba(13, 110, 253, 0.2)',
+                    borderColor: '#0d6efd',
+                    borderWidth: 2,
+                    borderRadius: 5,
+                    barThickness: 30
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { drawBorder: false, color: '#f0f0f0' },
+                        ticks: {
+                            callback: function(value) { return value + ' tín hiệu'; }
+                        }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
             }
         });
     </script>

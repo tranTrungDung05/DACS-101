@@ -14,7 +14,7 @@
                         <h5 class="m-0"><i class="fas fa-file-invoice me-2"></i>Thông tin Hợp đồng</h5>
                     </div>
                     <div class="card-body">
-                        <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+                        <div asp-validation-summary="All" class="text-danger small mb-3"></div>
 
                         <div class="mb-3">
                             <label class="form-label fw-bold small">Khách hàng</label>
@@ -107,14 +107,14 @@
 @section Scripts {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
     <script>
-        let rowIndex = 0;
-
         $(document).ready(function () {
             $('#btnAddVehicle').click(function () {
                 $('#placeholderMsg').hide();
                 const template = $('#vehicleRowTemplate').html();
-                const newRow = template.replace(/INDEX/g, rowIndex++);
+                // Sử dụng placeholder để re-index
+                const newRow = template.replace(/INDEX/g, 'TEMP');
                 $('#vehicleContainer').append(newRow);
+                reIndexRows();
             });
 
             $(document).on('click', '.btn-remove-row', function () {
@@ -122,9 +122,19 @@
                 if ($('.vehicle-row').length === 0) {
                     $('#placeholderMsg').show();
                 }
+                reIndexRows();
             });
-
-            // Handle form validation etc if needed
         });
+
+        function reIndexRows() {
+            $('.vehicle-row').each(function (index, element) {
+                $(element).find('select, input').each(function () {
+                    const name = $(this).attr('name');
+                    if (name) {
+                        $(this).attr('name', name.replace(/\[.*?\]/, '[' + index + ']'));
+                    }
+                });
+            });
+        }
     </script>
 }
