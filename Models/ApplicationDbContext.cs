@@ -19,6 +19,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<ThietBiGPS> ThietBiGPS { get; set; }
     public DbSet<HanhTrinh> HanhTrinhs { get; set; }
     public DbSet<DuLieuGPS> DuLieuGPS { get; set; }
+    public DbSet<DuLieuGiaTocKe> DuLieuGiaTocKes { get; set; }
     public DbSet<KhachHang> KhachHangs { get; set; }
     public DbSet<HopDong> HopDongs { get; set; }
     public DbSet<ChiTietHopDong> ChiTietHopDongs { get; set; }
@@ -42,7 +43,8 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<HanhTrinh>().HasKey(ht => ht.IdHanhTrinh);
         modelBuilder.Entity<HopDong>().HasKey(hd => hd.IdHopDong);
         modelBuilder.Entity<PhieuViPham>().HasKey(pvp => pvp.IdPhieuViPham);
-        modelBuilder.Entity<DuLieuGPS>().HasKey(gps => gps.Id); // Theo file mới em đã sửa cho anh có trường Id
+        modelBuilder.Entity<DuLieuGPS>().HasKey(gps => gps.Id);
+        modelBuilder.Entity<DuLieuGiaTocKe>().HasKey(a => a.Id);
 
         // --- Cấu hình Mối quan hệ (Foreign Keys) ---
         modelBuilder.Entity<TaiKhoan>()
@@ -67,6 +69,16 @@ public class ApplicationDbContext : DbContext
 
             entity.HasOne(d => d.ThietBiGPS)
                 .WithMany(t => t.DuLieuGPS)
+                .HasForeignKey(d => d.IdThietBi);
+        });
+
+        modelBuilder.Entity<DuLieuGiaTocKe>(entity => {
+            entity.HasOne(d => d.HanhTrinh)
+                .WithMany(h => h.DuLieuGiaTocKes)
+                .HasForeignKey(d => d.HanhTrinhIdHanhTrinh);
+
+            entity.HasOne(d => d.ThietBiGPS)
+                .WithMany(t => t.DuLieuGiaTocKes)
                 .HasForeignKey(d => d.IdThietBi);
         });
 
@@ -118,6 +130,11 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.KinhDo).HasColumnType("decimal(11, 8)");
             entity.Property(e => e.ViDo).HasColumnType("decimal(11, 8)");
             entity.Property(e => e.TocDo).HasColumnType("decimal(18, 2)");
+        });
+
+        modelBuilder.Entity<DuLieuGiaTocKe>(entity => {
+            entity.Property(e => e.GiaTocDoc).HasColumnType("decimal(10, 6)");
+            entity.Property(e => e.GiaTocNgang).HasColumnType("decimal(10, 6)");
         });
 
         modelBuilder.Entity<ChiTietViPham>(entity => {
