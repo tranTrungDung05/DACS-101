@@ -342,6 +342,58 @@ public class GpsController : ControllerBase
                 var predictionName = result.GetProperty("prediction_name").GetString();
 
                 journey.PhanLoaiHanhVi = predictionName;
+                
+                // --- CẬP NHẬT ĐIỂM AN TOÀN KHÁCH HÀNG ---
+                var activeContract = await db.HopDongs
+                    .Include(h => h.KhachHang)
+                    .Where(h => h.TrangThai && h.ChiTietHopDongs.Any(ct => ct.IdPhuongTien == journey.IdPhuongTien))
+                    .OrderByDescending(h => h.NgayTao)
+                    .FirstOrDefaultAsync();
+
+                if (activeContract != null && activeContract.KhachHang != null)
+                {
+                    var customer = activeContract.KhachHang;
+                    int oldScore = customer.DiemAnToan;
+                    
+                    if (predictionName == "NORMAL")
+                        customer.DiemAnToan = Math.Min(100, customer.DiemAnToan + 5);
+                    else if (predictionName == "AGGRESSIVE")
+                        customer.DiemAnToan -= 20;
+                    else if (predictionName == "DROWSY")
+                        customer.DiemAnToan -= 15;
+
+                    Console.WriteLine($"[SCORE] Khách hàng {customer.HoTen}: {oldScore} -> {customer.DiemAnToan}");
+
+                    // Kiểm tra nếu điểm thấp dưới 50 thì phạt
+                    if (customer.DiemAnToan < 50)
+                    {
+                        var dangerousRule = await db.QuyDinhs.FirstOrDefaultAsync(q => q.TenQuyDinh.Contains("nguy hiểm"));
+                        if (dangerousRule == null)
+                        {
+                            dangerousRule = new QuyDinh { TenQuyDinh = "Hành vi lái xe nguy hiểm", MucPhat = 1000000, MoTa = "Điểm an toàn thấp dưới 50" };
+                            db.QuyDinhs.Add(dangerousRule);
+                            await db.SaveChangesAsync();
+                        }
+
+                        var violationTicket = new PhieuViPham
+                        {
+                            IdHanhTrinh = journey.IdHanhTrinh,
+                            MaCccd = customer.MaCccd,
+                            NgayViPham = DateTime.Now,
+                            TienPhat = dangerousRule.MucPhat,
+                            MoTa = $"Vi phạm do điểm an toàn thấp ({customer.DiemAnToan}) sau hành trình #{journey.IdHanhTrinh}",
+                            TrangThai = true
+                        };
+                        db.PhieuViPhams.Add(violationTicket);
+                        
+                        // Reset điểm về lại 70 sau khi phạt để tránh bị phạt liên tục ngay lập tức? 
+                        // Hoặc cứ để thấp để khách hàng phải lái xe an toàn để hồi điểm.
+                        // Ở đây mình cứ để thấp để họ phải cố gắng.
+                        
+                        await _hubContext.Clients.All.SendAsync("ReceiveViolationAlert", bienSo, "Hành vi nguy hiểm", 0, 0);
+                    }
+                }
+
                 await db.SaveChangesAsync();
 
                 Console.ForegroundColor = predictionName == "NORMAL" ? ConsoleColor.Green :
@@ -433,6 +485,51 @@ public class GpsController : ControllerBase
             // 4. Lưu kết quả phân tích vào HanhTrinh trong DB
             var predictionName = result.GetProperty("prediction_name").GetString();
             journey.PhanLoaiHanhVi = predictionName;
+
+            // --- CẬP NHẬT ĐIỂM AN TOÀN KHÁCH HÀNG ---
+            var activeContract = await _context.HopDongs
+                .Include(h => h.KhachHang)
+                .Where(h => h.TrangThai && h.ChiTietHopDongs.Any(ct => ct.IdPhuongTien == journey.IdPhuongTien))
+                .OrderByDescending(h => h.NgayTao)
+                .FirstOrDefaultAsync();
+
+            if (activeContract != null && activeContract.KhachHang != null)
+            {
+                var customer = activeContract.KhachHang;
+                int oldScore = customer.DiemAnToan;
+                
+                if (predictionName == "NORMAL")
+                    customer.DiemAnToan = Math.Min(100, customer.DiemAnToan + 5);
+                else if (predictionName == "AGGRESSIVE")
+                    customer.DiemAnToan -= 20;
+                else if (predictionName == "DROWSY")
+                    customer.DiemAnToan -= 15;
+
+                Console.WriteLine($"[SCORE] Khách hàng {customer.HoTen}: {oldScore} -> {customer.DiemAnToan}");
+
+                if (customer.DiemAnToan < 50)
+                {
+                    var dangerousRule = await _context.QuyDinhs.FirstOrDefaultAsync(q => q.TenQuyDinh.Contains("nguy hiểm"));
+                    if (dangerousRule == null)
+                    {
+                        dangerousRule = new QuyDinh { TenQuyDinh = "Hành vi lái xe nguy hiểm", MucPhat = 1000000, MoTa = "Điểm an toàn thấp dưới 50" };
+                        _context.QuyDinhs.Add(dangerousRule);
+                        await _context.SaveChangesAsync();
+                    }
+
+                    var violationTicket = new PhieuViPham
+                    {
+                        IdHanhTrinh = journey.IdHanhTrinh,
+                        MaCccd = customer.MaCccd,
+                        NgayViPham = DateTime.Now,
+                        TienPhat = dangerousRule.MucPhat,
+                        MoTa = $"Vi phạm do điểm an toàn thấp ({customer.DiemAnToan}) sau hành trình #{journey.IdHanhTrinh}",
+                        TrangThai = true
+                    };
+                    _context.PhieuViPhams.Add(violationTicket);
+                    await _hubContext.Clients.All.SendAsync("ReceiveViolationAlert", journey.PhuongTien?.BienSo, "Hành vi nguy hiểm", 0, 0);
+                }
+            }
 
             await _context.SaveChangesAsync();
 

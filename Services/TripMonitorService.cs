@@ -1,4 +1,5 @@
 using DACS.Models;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Text;
 using System.Text.Json;
@@ -16,13 +17,16 @@ public class TripMonitorService : BackgroundService
     private readonly ILogger<TripMonitorService> _logger;
 
     private const int CHECK_INTERVAL_SECONDS = 60;  // Quét mỗi 60 giây
-    private const int TRIP_GAP_MINUTES = 5;          // Ngưỡng nghỉ = 5 phút
+    private const int TRIP_GAP_MINUTES = 1;          // Ngưỡng nghỉ = 5 phút
 
-    public TripMonitorService(IServiceScopeFactory scopeFactory, IConfiguration configuration, ILogger<TripMonitorService> logger)
+    private readonly IHubContext<GpsHub> _hubContext;
+
+    public TripMonitorService(IServiceScopeFactory scopeFactory, IConfiguration configuration, ILogger<TripMonitorService> logger, IHubContext<GpsHub> hubContext)
     {
         _scopeFactory = scopeFactory;
         _configuration = configuration;
         _logger = logger;
+        _hubContext = hubContext;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -145,6 +149,52 @@ public class TripMonitorService : BackgroundService
                 var predictionName = result.GetProperty("prediction_name").GetString();
 
                 journey.PhanLoaiHanhVi = predictionName;
+
+                // --- CẬP NHẬT ĐIỂM AN TOÀN KHÁCH HÀNG ---
+                var activeContract = await db.HopDongs
+                    .Include(h => h.KhachHang)
+                    .Where(h => h.TrangThai && h.ChiTietHopDongs.Any(ct => ct.IdPhuongTien == journey.IdPhuongTien))
+                    .OrderByDescending(h => h.NgayTao)
+                    .FirstOrDefaultAsync(ct);
+
+                if (activeContract != null && activeContract.KhachHang != null)
+                {
+                    var customer = activeContract.KhachHang;
+                    int oldScore = customer.DiemAnToan;
+
+                    if (predictionName == "NORMAL")
+                        customer.DiemAnToan = Math.Min(100, customer.DiemAnToan + 5);
+                    else if (predictionName == "AGGRESSIVE")
+                        customer.DiemAnToan -= 20;
+                    else if (predictionName == "DROWSY")
+                        customer.DiemAnToan -= 15;
+
+                    Console.WriteLine($"[TripMonitor - SCORE] Khách hàng {customer.HoTen}: {oldScore} -> {customer.DiemAnToan}");
+
+                    if (customer.DiemAnToan < 50)
+                    {
+                        var dangerousRule = await db.QuyDinhs.FirstOrDefaultAsync(q => q.TenQuyDinh.Contains("nguy hiểm"), ct);
+                        if (dangerousRule == null)
+                        {
+                            dangerousRule = new QuyDinh { TenQuyDinh = "Hành vi lái xe nguy hiểm", MucPhat = 1000000, MoTa = "Điểm an toàn thấp dưới 50" };
+                            db.QuyDinhs.Add(dangerousRule);
+                            await db.SaveChangesAsync(ct);
+                        }
+
+                        var violationTicket = new PhieuViPham
+                        {
+                            IdHanhTrinh = journey.IdHanhTrinh,
+                            MaCccd = customer.MaCccd,
+                            NgayViPham = DateTime.Now,
+                            TienPhat = dangerousRule.MucPhat,
+                            MoTa = $"Vi phạm do điểm an toàn thấp ({customer.DiemAnToan}) sau hành trình #{journey.IdHanhTrinh}",
+                            TrangThai = true
+                        };
+                        db.PhieuViPhams.Add(violationTicket);
+                        await _hubContext.Clients.All.SendAsync("ReceiveViolationAlert", bienSo, "Hành vi nguy hiểm", 0, 0);
+                    }
+                }
+
                 await db.SaveChangesAsync(ct);
 
                 Console.ForegroundColor = predictionName == "NORMAL" ? ConsoleColor.Green :

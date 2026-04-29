@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace DACS.Models;
 
@@ -10,6 +10,7 @@ public class KhachHang
     public DateOnly NgaySinh { get; set; }
     public string DiaChi { get; set; } = string.Empty;
     public string Sdt { get; set; } = string.Empty;
+    public int DiemAnToan { get; set; } = 100; // Điểm an toàn mặc định là 100
 
     public virtual ICollection<HopDong> HopDongs { get; set; } = new List<HopDong>();
     public virtual ICollection<PhieuViPham> PhieuViPhams { get; set; } = new List<PhieuViPham>();
