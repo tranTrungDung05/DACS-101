@@ -1,0 +1,46 @@
+QUY TRÌNH TRÍCH XUẤT ĐẶC TRƯNG HÀNH VI LÁI XE
+
+1. Tổng quan Luồng xử lý
+Quy trình được thiết kế theo tư duy Modularization (chia nhỏ để quản lý), gồm 3 giai đoạn chính:
+Giai đoạn 1 (Explore): Quét toàn bộ thư mục, nhận diện 40 chuyến đi (trips) và cấu trúc file .txt.
+Giai đoạn 2 (Extraction): Đọc dữ liệu cảm biến tần số cao (100Hz) và GPS (1Hz) để tính toán các chỉ số thống kê.
+Giai đoạn 3 (Refinement): Chỉ giữ lại 5 đặc trưng cốt lõi có khả năng phân tách hành vi cao nhất để tránh nhiễu và Overfitting.
+
+2. Giải thích chi tiết các Đặc trưng (Features)
+
+A. Nhóm Vận tốc (Dữ liệu từ GPS - 1Hz)
+speed_mean (Tốc độ trung bình): * Nguồn: Trung bình cộng cột speed trong RAW_GPS.txt.
+Lý do: Xác định ngữ cảnh lái xe (trong phố hay cao tốc).
+speed_std (Độ lệch chuẩn tốc độ):
+Công thức: "speed_std": speed.std() tai step 2
+Ý nghĩa: Đo sự biến động của chân ga. Người lái xe bình thường sẽ giữ ga đều (Std thấp), người lái xe ẩu hoặc lờ đờ thường xuyên thay đổi vận tốc bất thường (Std cao).
+B. Nhóm Gia tốc (Dữ liệu từ IMU - 100Hz)
+Đây là nhóm quan trọng nhất vì nó bắt được những khoảnh khắc diễn ra trong tích tắc mà GPS thường bỏ lỡ.
+accel_long_std (Biến thiên gia tốc dọc):
+Nguồn: Trích xuất từ trục X của cảm biến gia tốc, chuyển đơn vị sang g (1g ~= 9.81 m/s^2).
+Lý do: Bắt lỗi phanh gấp và tăng tốc đột ngột. Nếu giá trị này cao, chứng tỏ tài xế thường xuyên đạp phanh/ga mạnh tay.
+accel_lat_std (Biến thiên gia tốc ngang):
+Nguồn: Trích xuất từ trục Y của cảm biến gia tốc.
+Lý do: Bắt lỗi đánh lái. Một tài xế buồn ngủ (Drowsy) thường có xu hướng đảo lái liên tục để giữ làn, hoặc tài xế ẩu (Aggressive) sẽ vào cua rất gắt. Cả hai hành vi này đều đẩy accel_lat_std lên cao.
+C. Nhóm Quãng đường
+distance_km:
+Công thức: Tính bằng tích phân tốc độ theo thời gian.
+Lý do: Dùng để chuẩn hóa các hành vi. Một lỗi vi phạm trên 1km sẽ nghiêm trọng hơn một lỗi trên 100km.
+
+3. Các kỹ thuật xử lý dữ liệu đã áp dụng
+3.1. Chuyển đổi đơn vị và Tần số 
+Dữ liệu Accelerometer được chia cho 9.81 để đưa về đơn vị g. Điều này giúp các con số trở nên dễ hiểu (ví dụ: 0.4g là ngưỡng bắt đầu thấy khó chịu cho hành khách).
+Sử dụng Median Fill cho các giá trị thiếu (NaN) thay vì Mean để tránh bị ảnh hưởng bởi các giá trị nhiễu cực đoan từ cảm biến.
+3.2. Chắt lọc Feature (Feature Selection)
+Tại Cell 3, chúng ta chủ động loại bỏ các cột như jerk_count hay intensity vì:
+Tránh Overfitting: Với 40 mẫu, dùng quá nhiều cột sẽ khiến model bị nhiễu.
+Tính ổn định: Các chỉ số Std (Độ lệch chuẩn) có tính bao quát toàn bộ chuyến đi tốt hơn là việc đếm số sự kiện đơn lẻ (vốn dễ bị sai nếu cảm biến quá nhạy)
+3.3. Nhãn mục tiêu (Labeling)
+Toàn bộ các biến thể của NORMAL (Normal1, Normal2...) được gộp chung về nhãn 0.
+Điều này tạo ra bài toán phân lớp rành mạch: 0 (An toàn) - 1 (Nguy hiểm) - 2 (Bất thường/Buồn ngủ).
+
+4. Lưu ý khi Train Model
+Clustering: Nếu dùng K-Means, bắt buộc phải dùng StandardScaler. Do speed_mean (~60) và accel_std (~0.003) lệch nhau hàng vạn lần về biên độ.
+Validation: Sau khi Clustering xong, hãy dùng cột label trong file dataset_final_v2.csv để đo độ khớp (Accuracy/F1-score).
+Mở rộng: Nếu 40 mẫu là quá ít, có thể sử dụng hàm filter_invalid_trips trong file function để lọc kỹ hơn hoặc thực hiện cắt nhỏ trip
+

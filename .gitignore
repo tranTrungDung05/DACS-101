@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+
+output/
+
+# Large local dataset; keep out of git/GitHub
+UAH-DRIVESET-v1/
