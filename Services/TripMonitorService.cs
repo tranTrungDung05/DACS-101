@@ -118,13 +118,15 @@ public class TripMonitorService : BackgroundService
                 timestamp_s = (d.Timestamp - startTime).TotalSeconds,
                 lat = (double)d.ViDo,
                 lon = (double)d.KinhDo,
-                speed_kmh = (double)d.TocDo
+                speed_kmh = (double)d.TocDo,
+                gps_x = d.GpsX.HasValue ? d.GpsX.Value : (double?)null
             }),
             accel_points = accelData.Select(d => new
             {
                 timestamp_s = (d.Timestamp - startTime).TotalSeconds,
                 accel_long_g = (double)d.GiaTocDoc,
-                accel_lat_g = (double)d.GiaTocNgang
+                accel_lat_g = (double)d.GiaTocNgang,
+                accel_lat_smooth_g = d.GiaTocNgangMuot.HasValue ? d.GiaTocNgangMuot.Value : (double?)null
             })
         };
 

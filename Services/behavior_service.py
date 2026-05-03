@@ -9,7 +9,7 @@ import joblib
 import pandas as pd
 
 
-MODEL_PATH = Path(__file__).parent / "best_driver_behavior_model.joblib"
+MODEL_PATH = Path("./Services/best_driver_behavior_model.joblib")
 HOST = "127.0.0.1"
 PORT = 8000
 
@@ -90,8 +90,31 @@ class BehaviorPredictor:
         gps_points: list[dict[str, Any]],
         accel_points: list[dict[str, Any]],
     ) -> dict[str, float]:
-        gps = self._normalize_gps_frame(pd.DataFrame(gps_points))
-        accel = self._normalize_accel_frame(pd.DataFrame(accel_points))
+        gps_frame = pd.DataFrame(gps_points)
+        accel_frame = pd.DataFrame(accel_points)
+
+        # When these extra raw-derived columns are present, reproduce the same
+        # feature space used to build dataset_final_v2.csv for the legacy model.
+        if "gps_x" in gps_frame.columns and "accel_lat_smooth_g" in accel_frame.columns:
+            speed = pd.to_numeric(gps_frame["gps_x"], errors="coerce").clip(lower=0).dropna()
+            accel_long = pd.to_numeric(accel_frame["accel_lat_g"], errors="coerce").dropna() / 9.81
+            accel_lat = pd.to_numeric(accel_frame["accel_lat_smooth_g"], errors="coerce").dropna() / 9.81
+
+            if len(speed) < 2:
+                raise ValueError("Need at least 2 valid gps_x points to compute legacy split features")
+            if len(accel_long) < 2 or len(accel_lat) < 2:
+                raise ValueError("Need at least 2 valid accelerometer points to compute legacy split features")
+
+            return {
+                "speed_mean": float(speed.mean()),
+                "speed_std": float(speed.std(ddof=1)),
+                "accel_long_std": float(accel_long.std(ddof=1)),
+                "accel_lat_std": float(accel_lat.std(ddof=1)),
+                "distance_km": float((speed.mean() * len(speed)) / 3600.0),
+            }
+
+        gps = self._normalize_gps_frame(gps_frame)
+        accel = self._normalize_accel_frame(accel_frame)
 
         if len(gps) < 2:
             raise ValueError("Need at least 2 valid GPS points to compute features")
@@ -168,6 +191,7 @@ class BehaviorPredictor:
         accel_points: list[dict[str, Any]],
     ) -> dict[str, Any]:
         features = self.split_streams_to_features(gps_points, accel_points)
+        print("DEBUG INCOMING FEATURES:", features, flush=True)
         return self._predict_from_features(features, len(gps_points) + len(accel_points), "split_streams")
 
     def predict_from_csv(self, csv_path: str) -> dict[str, Any]:

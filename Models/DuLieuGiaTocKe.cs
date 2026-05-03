@@ -9,10 +9,13 @@ public class DuLieuGiaTocKe
     public int? IdThietBi { get; set; }
 
     /// <summary>Gia tốc dọc (theo hướng di chuyển), đơn vị: g</summary>
-    public decimal GiaTocDoc { get; set; }
+    public double GiaTocDoc { get; set; }
 
     /// <summary>Gia tốc ngang (lệch trái/phải), đơn vị: g</summary>
-    public decimal GiaTocNgang { get; set; }
+    public double GiaTocNgang { get; set; }
+
+    /// <summary>Gia tốc ngang mượt (accel_lat_smooth_g) cho model AI</summary>
+    public double? GiaTocNgangMuot { get; set; }
 
     public DateTime Timestamp { get; set; } = DateTime.Now;
 

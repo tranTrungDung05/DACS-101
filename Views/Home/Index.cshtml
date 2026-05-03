@@ -227,8 +227,9 @@
             if (!carData) return;
             
             if (!carData.detailedRoute) {
-                // Nếu đã có nhiều điểm (giả lập hoặc hành trình thực), dùng luôn các điểm đó làm route
-                if (carData.waypoints.length > 50) {
+                // Vì dữ liệu GPS thực tế rất dày (1 điểm/giây), nếu gọi OSRM sẽ bị nhiễu tạo ra các vòng lặp ngoằn ngoèo.
+                // Trực tiếp dùng các điểm GPS để vẽ đường.
+                if (carData.waypoints.length > 10) {
                     carData.detailedRoute = carData.waypoints;
                 } else {
                     carData.detailedRoute = await getRoadGeometry(carData.waypoints);

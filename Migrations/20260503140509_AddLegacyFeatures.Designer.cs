@@ -4,6 +4,7 @@ using DACS.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DACS.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260503140509_AddLegacyFeatures")]
+    partial class AddLegacyFeatures
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -139,8 +142,8 @@ namespace DACS.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
-                    b.Property<double?>("GpsX")
-                        .HasColumnType("float");
+                    b.Property<decimal?>("GpsX")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("HanhTrinhIdHanhTrinh")
                         .HasColumnType("int");
@@ -183,8 +186,8 @@ namespace DACS.Migrations
                     b.Property<decimal>("GiaTocNgang")
                         .HasColumnType("decimal(10, 6)");
 
-                    b.Property<double?>("GiaTocNgangMuot")
-                        .HasColumnType("float");
+                    b.Property<decimal?>("GiaTocNgangMuot")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("HanhTrinhIdHanhTrinh")
                         .HasColumnType("int");

@@ -156,22 +156,40 @@ public class GpsController : ControllerBase
         {
             HanhTrinhIdHanhTrinh = journey.IdHanhTrinh,
             IdThietBi = vehicle.IdThietBi,
-            ViDo = (decimal)request.Latitude,
-            KinhDo = (decimal)request.Longitude,
-            TocDo = (decimal)request.Speed,
+            ViDo = request.Latitude,
+            KinhDo = request.Longitude,
+            TocDo = request.Speed,
+            GpsX = request.GpsX.HasValue ? request.GpsX.Value : null,
             Timestamp = DateTime.Now
         };
         _context.DuLieuGPS.Add(gpsData);
 
-        // 6b. Lưu dữ liệu Gia tốc kế vào DB (nếu simulator gửi lên)
-        if (request.AccelLongG.HasValue && request.AccelLatG.HasValue)
+        // 6b. Lưu dữ liệu Gia tốc kế vào DB (nếu simulator gửi lên theo lô - Batch)
+        if (request.AccelBatch != null && request.AccelBatch.Any())
+        {
+            foreach (var sample in request.AccelBatch)
+            {
+                var accelData = new DuLieuGiaTocKe
+                {
+                    HanhTrinhIdHanhTrinh = journey.IdHanhTrinh,
+                    IdThietBi = vehicle.IdThietBi,
+                    GiaTocDoc = sample.AccelLongG,
+                    GiaTocNgang = sample.AccelLatG,
+                    GiaTocNgangMuot = sample.AccelLatSmoothG.HasValue ? sample.AccelLatSmoothG.Value : null,
+                    Timestamp = sample.Timestamp ?? DateTime.Now
+                };
+                _context.DuLieuGiaTocKes.Add(accelData);
+            }
+        }
+        // Hỗ trợ cả cách gửi 1 điểm duy nhất (tương thích ngược với Postman cũ)
+        else if (request.AccelLongG.HasValue && request.AccelLatG.HasValue)
         {
             var accelData = new DuLieuGiaTocKe
             {
                 HanhTrinhIdHanhTrinh = journey.IdHanhTrinh,
                 IdThietBi = vehicle.IdThietBi,
-                GiaTocDoc = (decimal)request.AccelLongG.Value,
-                GiaTocNgang = (decimal)request.AccelLatG.Value,
+                GiaTocDoc = request.AccelLongG.Value,
+                GiaTocNgang = request.AccelLatG.Value,
                 Timestamp = DateTime.Now
             };
             _context.DuLieuGiaTocKes.Add(accelData);
@@ -201,44 +219,53 @@ public class GpsController : ControllerBase
                     await _context.SaveChangesAsync();
                 }
 
-                // Kiểm tra/Tạo Phiếu vi phạm cho KHÁCH HÀNG này trong NGÀY HÔM NAY
-                var today = DateTime.Now.Date;
-                var violationTicket = await _context.PhieuViPhams
-                    .FirstOrDefaultAsync(p => p.MaCccd == activeContract.MaCccd && p.NgayViPham.Date == today);
+                // Kiểm tra xem trong hành trình NÀY đã bị phạt quá tốc độ chưa
+                bool alreadyFined = await _context.ChiTietViPhams
+                    .AnyAsync(ct => ct.QuyDinhIdQuyDinh == speedingRule.IdQuyDinh
+                                 && ct.ThoiGianXayRa >= journey.NgayDi
+                                 && ct.PhieuViPham.MaCccd == activeContract.MaCccd);
 
-                if (violationTicket == null)
+                if (!alreadyFined)
                 {
-                    violationTicket = new PhieuViPham
+                    // Kiểm tra/Tạo Phiếu vi phạm cho KHÁCH HÀNG này trong NGÀY HÔM NAY
+                    var today = DateTime.Now.Date;
+                    var violationTicket = await _context.PhieuViPhams
+                        .FirstOrDefaultAsync(p => p.MaCccd == activeContract.MaCccd && p.NgayViPham.Date == today);
+
+                    if (violationTicket == null)
                     {
-                        HanhTrinh = journey, // Vẫn lưu vết hành trình đầu tiên phát sinh lỗi
-                        KhachHang = activeContract.KhachHang,
-                        NgayViPham = DateTime.Now,
-                        TienPhat = speedingRule.MucPhat,
-                        MoTa = $"Vi phạm tổng hợp ngày {today:dd/MM/yyyy}",
-                        TrangThai = true
-                    };
-                    _context.PhieuViPhams.Add(violationTicket);
-                    await _context.SaveChangesAsync();
-                }
-                else
-                {
-                    // Cộng dồn tiền phạt vào phiếu của ngày hôm nay
-                    violationTicket.TienPhat += speedingRule.MucPhat;
-                    // Cập nhật mô tả nếu cần
-                    violationTicket.MoTa = $"Tổng hợp vi phạm ngày {today:dd/MM/yyyy}";
-                }
+                        violationTicket = new PhieuViPham
+                        {
+                            HanhTrinh = journey, // Vẫn lưu vết hành trình đầu tiên phát sinh lỗi
+                            KhachHang = activeContract.KhachHang,
+                            NgayViPham = DateTime.Now,
+                            TienPhat = speedingRule.MucPhat,
+                            MoTa = $"Vi phạm tổng hợp ngày {today:dd/MM/yyyy}",
+                            TrangThai = true
+                        };
+                        _context.PhieuViPhams.Add(violationTicket);
+                        await _context.SaveChangesAsync();
+                    }
+                    else
+                    {
+                        // Cộng dồn tiền phạt vào phiếu của ngày hôm nay
+                        violationTicket.TienPhat += speedingRule.MucPhat;
+                        // Cập nhật mô tả nếu cần
+                        violationTicket.MoTa = $"Tổng hợp vi phạm ngày {today:dd/MM/yyyy}";
+                    }
 
-                // Ghi nhận Chi tiết vi phạm (Lưu lại bằng chứng: Tốc độ và Tọa độ)
-                var violationDetail = new ChiTietViPham
-                {
-                    PhieuViPhamIdPhieuViPham = violationTicket.IdPhieuViPham,
-                    QuyDinhIdQuyDinh = speedingRule.IdQuyDinh,
-                    TocDoViPham = (decimal)request.Speed,
-                    ViDo = (decimal)request.Latitude,
-                    KinhDo = (decimal)request.Longitude,
-                    ThoiGianXayRa = DateTime.Now
-                };
-                _context.ChiTietViPhams.Add(violationDetail);
+                    // Ghi nhận Chi tiết vi phạm (Lưu lại bằng chứng: Tốc độ và Tọa độ)
+                    var violationDetail = new ChiTietViPham
+                    {
+                        PhieuViPhamIdPhieuViPham = violationTicket.IdPhieuViPham,
+                        QuyDinhIdQuyDinh = speedingRule.IdQuyDinh,
+                        TocDoViPham = (decimal)request.Speed,
+                        ViDo = (decimal)request.Latitude,
+                        KinhDo = (decimal)request.Longitude,
+                        ThoiGianXayRa = DateTime.Now
+                    };
+                    _context.ChiTietViPhams.Add(violationDetail);
+                }
 
                 // Phát SignalR cảnh báo vi phạm
                 await _hubContext.Clients.All.SendAsync("ReceiveViolationAlert", 
@@ -443,13 +470,15 @@ public class GpsController : ControllerBase
             timestamp_s = (d.Timestamp - startTime).TotalSeconds,
             lat = (double)d.ViDo,
             lon = (double)d.KinhDo,
-            speed_kmh = (double)d.TocDo
+            speed_kmh = (double)d.TocDo,
+            gps_x = d.GpsX.HasValue ? (double)d.GpsX.Value : (double?)null
         }).ToList();
 
         var accelPoints = accelData.Select(d => new {
             timestamp_s = (d.Timestamp - startTime).TotalSeconds,
             accel_long_g = (double)d.GiaTocDoc,
-            accel_lat_g = (double)d.GiaTocNgang
+            accel_lat_g = (double)d.GiaTocNgang,
+            accel_lat_smooth_g = d.GiaTocNgangMuot.HasValue ? (double)d.GiaTocNgangMuot.Value : (double?)null
         }).ToList();
 
         // 3. Gọi behavior_service (Python) để phân tích
@@ -565,10 +594,24 @@ public class GpsUpdateDto
     public double Latitude { get; set; }
     public double Longitude { get; set; }
     public double Speed { get; set; }
+    public double? GpsX { get; set; }
 
-    /// <summary>Gia tốc dọc (g) - từ cảm biến gia tốc kế</summary>
+    /// <summary>Gia tốc dọc (g) - đơn lẻ</summary>
     public double? AccelLongG { get; set; }
 
-    /// <summary>Gia tốc ngang (g) - từ cảm biến gia tốc kế</summary>
+    /// <summary>Gia tốc ngang (g) - đơn lẻ</summary>
     public double? AccelLatG { get; set; }
+    
+    public double? AccelLatSmoothG { get; set; }
+
+    /// <summary>Danh sách các mẫu gia tốc gom gói (Batch) để gửi tần suất cao</summary>
+    public List<AccelSampleDto>? AccelBatch { get; set; }
+}
+
+public class AccelSampleDto
+{
+    public double AccelLongG { get; set; }
+    public double AccelLatG { get; set; }
+    public double? AccelLatSmoothG { get; set; }
+    public DateTime? Timestamp { get; set; }
 }
