@@ -12,6 +12,7 @@ namespace DACS.Services
     public interface ISpeedLimitService
     {
         Task<double> GetMaxSpeed(int vehicleId, double lat, double lon);
+        Task<(double lat, double lon)> SnapToRoad(double lat, double lon);
     }
 
     public class VehicleCache
@@ -26,14 +27,11 @@ namespace DACS.Services
     {
         private readonly IHttpClientFactory _httpClientFactory;
         private const double DEFAULT_SPEED = 50.0;
+        private const double MAX_SNAP_DISTANCE_METERS = 25.0; // Ngưỡng để không bị "giả"
         
-        // Cache riêng biệt cho từng xe
         private static readonly ConcurrentDictionary<int, VehicleCache> _caches = new ConcurrentDictionary<int, VehicleCache>();
-        
-        // Cờ đánh dấu xe nào đang được gọi API ngầm (tránh spam API)
         private static readonly ConcurrentDictionary<int, bool> _isFetching = new ConcurrentDictionary<int, bool>();
 
-        // Danh sách các Server Overpass dự phòng
         private readonly string[] _apiEndpoints = new[] {
             "https://overpass-api.de/api/interpreter",
             "https://overpass.kumi.systems/api/interpreter",
@@ -45,47 +43,65 @@ namespace DACS.Services
             _httpClientFactory = httpClientFactory;
         }
 
+        public async Task<(double lat, double lon)> SnapToRoad(double lat, double lon)
+        {
+            try
+            {
+                using var client = _httpClientFactory.CreateClient();
+                client.Timeout = TimeSpan.FromSeconds(2);
+                
+                string url = $"http://router.project-osrm.org/nearest/v1/driving/{lon.ToString(CultureInfo.InvariantCulture)},{lat.ToString(CultureInfo.InvariantCulture)}?number=1";
+                
+                var response = await client.GetAsync(url);
+                if (!response.IsSuccessStatusCode) return (lat, lon);
+
+                var jsonString = await response.Content.ReadAsStringAsync();
+                using var doc = JsonDocument.Parse(jsonString);
+                
+                if (doc.RootElement.GetProperty("code").GetString() == "Ok")
+                {
+                    var waypoint = doc.RootElement.GetProperty("waypoints")[0];
+                    double distance = waypoint.GetProperty("distance").GetDouble();
+
+                    if (distance <= MAX_SNAP_DISTANCE_METERS)
+                    {
+                        var location = waypoint.GetProperty("location");
+                        double snappedLon = location[0].GetDouble();
+                        double snappedLat = location[1].GetDouble();
+                        return (snappedLat, snappedLon);
+                    }
+                }
+            }
+            catch (Exception) { }
+            return (lat, lon);
+        }
+
         public Task<double> GetMaxSpeed(int vehicleId, double lat, double lon)
         {
             double currentSpeed = DEFAULT_SPEED;
             bool needsUpdate = true;
 
-            // 1. Kiểm tra Cache
             if (_caches.TryGetValue(vehicleId, out var cache))
             {
                 currentSpeed = cache.Speed;
                 double dist = CalculateSimpleDistance(cache.Lat, cache.Lon, lat, lon);
-                
-                // Nới lỏng điều kiện Cache: Nếu xe di chuyển < 100m và dữ liệu chưa quá 2 phút
                 if (dist < 0.1 && (DateTime.Now - cache.LastUpdate).TotalSeconds < 120)
                 {
                     needsUpdate = false;
                 }
             }
 
-            // 2. Kích hoạt tiến trình hỏi API NGẦM (Fire and Forget)
             if (needsUpdate)
             {
-                // Tránh tình trạng 1 xe gọi API 10 lần cùng lúc khi chưa có kết quả
                 if (_isFetching.TryAdd(vehicleId, true))
                 {
-                    // Task.Run giúp API chạy độc lập, không làm đứng chương trình chính
                     _ = Task.Run(async () => 
                     {
-                        try
-                        {
-                            await FetchSpeedFromOsmAsync(vehicleId, lat, lon, currentSpeed);
-                        }
-                        finally
-                        {
-                            // Giải phóng cờ báo khi xong việc
-                            _isFetching.TryRemove(vehicleId, out _);
-                        }
+                        try { await FetchSpeedFromOsmAsync(vehicleId, lat, lon, currentSpeed); }
+                        finally { _isFetching.TryRemove(vehicleId, out _); }
                     });
                 }
             }
-
-            // 3. TRẢ VỀ NGAY LẬP TỨC (0s Timeout) tốc độ hiện tại trong Cache (hoặc mặc định)
             return Task.FromResult(currentSpeed);
         }
 
@@ -93,10 +109,8 @@ namespace DACS.Services
         {
             double resultSpeed = fallbackSpeed;
             bool success = false;
-
-            // Tạo một HttpClient mới an toàn cho luồng chạy ngầm
             using var client = _httpClientFactory.CreateClient();
-            client.Timeout = TimeSpan.FromSeconds(10); // Cho phép chờ hẳn 10s vì đã chạy ngầm
+            client.Timeout = TimeSpan.FromSeconds(10);
             client.DefaultRequestHeaders.Add("User-Agent", "DACS-GpsTracking-App/2.0");
 
             foreach (var endpoint in _apiEndpoints)
@@ -110,10 +124,8 @@ namespace DACS.Services
                         way(around:50,{lat.ToString(CultureInfo.InvariantCulture)},{lon.ToString(CultureInfo.InvariantCulture)})[highway];
                         out body;
                     ";
-
                     var content = new FormUrlEncodedContent(new[] { new KeyValuePair<string, string>("data", query) });
                     var response = await client.PostAsync(endpoint, content);
-                    
                     if (!response.IsSuccessStatusCode) continue;
 
                     var jsonString = await response.Content.ReadAsStringAsync();
@@ -124,58 +136,38 @@ namespace DACS.Services
                     {
                         double foundSpeed = DEFAULT_SPEED;
                         bool hasMaxSpeed = false;
-
                         foreach (var el in elements.EnumerateArray())
                         {
                             if (el.TryGetProperty("tags", out var tags) && tags.TryGetProperty("maxspeed", out var ms))
                             {
-                                if (double.TryParse(ExtractNumber(ms.GetString()), out double s))
+                                string speedStr = ExtractNumber(ms.GetString());
+                                if (double.TryParse(speedStr, out double s) && s > 0)
                                 {
                                     foundSpeed = s;
                                     hasMaxSpeed = true;
-                                    Console.ForegroundColor = ConsoleColor.Green;
-                                    Console.WriteLine($"[OSM-NGẦM] ✅ Xe {vehicleId}: Cập nhật {foundSpeed}km/h (Bản đồ) tại ({lat:F4}, {lon:F4})");
-                                    Console.ResetColor();
+                                    Console.WriteLine($"[OSM-NGẦM] ✅ Xe {vehicleId}: Cập nhật {foundSpeed}km/h (Bản đồ)");
                                     break;
                                 }
                             }
                         }
-
                         if (!hasMaxSpeed)
                         {
                             var first = elements.EnumerateArray().First();
                             if (first.TryGetProperty("tags", out var tags) && tags.TryGetProperty("highway", out var hw))
                             {
                                 foundSpeed = MapHighwayToSpeedVn(hw.GetString());
-                                Console.ForegroundColor = ConsoleColor.Yellow;
-                                Console.WriteLine($"[OSM-NGẦM] ⚠️ Xe {vehicleId}: Cập nhật {foundSpeed}km/h (Suy luận: {hw.GetString()}) tại ({lat:F4}, {lon:F4})");
-                                Console.ResetColor();
+                                Console.WriteLine($"[OSM-NGẦM] ⚠️ Xe {vehicleId}: Cập nhật {foundSpeed}km/h (Suy luận)");
                             }
                         }
-
                         resultSpeed = foundSpeed;
                         success = true;
-                        break; // Thành công thì thoát vòng lặp server
+                        break;
                     }
                 }
-                catch (Exception)
-                {
-                    continue; // Lỗi thì thử Server tiếp theo
-                }
+                catch (Exception) { continue; }
             }
 
-            if (!success)
-            {
-                // Nếu cả 3 server đều chết, in ra màu Xám để khỏi rối mắt
-                Console.ForegroundColor = ConsoleColor.DarkGray;
-                Console.WriteLine($"[OSM-NGẦM] ❌ Xe {vehicleId}: Không phản hồi. Giữ nguyên {resultSpeed}km/h");
-                Console.ResetColor();
-            }
-
-            // Âm thầm cập nhật Cache mới
-            var newCache = new VehicleCache {
-                Lat = lat, Lon = lon, Speed = resultSpeed, LastUpdate = DateTime.Now
-            };
+            var newCache = new VehicleCache { Lat = lat, Lon = lon, Speed = resultSpeed, LastUpdate = DateTime.Now };
             _caches.AddOrUpdate(vehicleId, newCache, (id, old) => newCache);
         }
 
@@ -192,15 +184,8 @@ namespace DACS.Services
 
         private double MapHighwayToSpeedVn(string? highwayType)
         {
-            return highwayType switch
-            {
-                "motorway" => 120,
-                "trunk" => 90,
-                "primary" => 80,
-                "secondary" => 60,
-                "tertiary" => 50,
-                "residential" => 40,
-                _ => DEFAULT_SPEED
+            return highwayType switch {
+                "motorway" => 120, "trunk" => 90, "primary" => 80, "secondary" => 60, "tertiary" => 50, "residential" => 40, _ => DEFAULT_SPEED
             };
         }
     }

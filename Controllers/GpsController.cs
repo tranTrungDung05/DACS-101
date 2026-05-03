@@ -37,8 +37,12 @@ public class GpsController : ControllerBase
     {
         if (request == null) return BadRequest();
 
+        // --- NẮN TỌA ĐỘ DÍNH ĐƯỜNG (MAP MATCHING) ---
+        var (snappedLat, snappedLon) = await _speedLimitService.SnapToRoad(request.Latitude, request.Longitude);
+        request.Latitude = snappedLat;
+        request.Longitude = snappedLon;
+
         // --- LẤY TỐC ĐỘ GIỚI HẠN TỪ OSM TRƯỚC (Để Log luôn hiện ra) ---
-        // Truyền thêm request.VehicleID để quản lý Cache theo từng xe
         var maxSpeed = await _speedLimitService.GetMaxSpeed(request.VehicleID, request.Latitude, request.Longitude);
 
         // 1. Tìm phương tiện theo ID (Bao gồm cả thiết bị và hành trình)
@@ -225,7 +229,7 @@ public class GpsController : ControllerBase
                                  && ct.ThoiGianXayRa >= journey.NgayDi
                                  && ct.PhieuViPham.MaCccd == activeContract.MaCccd);
 
-                if (!alreadyFined)
+                if (!alreadyFined && maxSpeed > 0)
                 {
                     // Kiểm tra/Tạo Phiếu vi phạm cho KHÁCH HÀNG này trong NGÀY HÔM NAY
                     var today = DateTime.Now.Date;
@@ -236,8 +240,8 @@ public class GpsController : ControllerBase
                     {
                         violationTicket = new PhieuViPham
                         {
-                            HanhTrinh = journey, // Vẫn lưu vết hành trình đầu tiên phát sinh lỗi
-                            KhachHang = activeContract.KhachHang,
+                            IdHanhTrinh = journey.IdHanhTrinh,
+                            MaCccd = activeContract.MaCccd,
                             NgayViPham = DateTime.Now,
                             TienPhat = speedingRule.MucPhat,
                             MoTa = $"Vi phạm tổng hợp ngày {today:dd/MM/yyyy}",
@@ -250,11 +254,10 @@ public class GpsController : ControllerBase
                     {
                         // Cộng dồn tiền phạt vào phiếu của ngày hôm nay
                         violationTicket.TienPhat += speedingRule.MucPhat;
-                        // Cập nhật mô tả nếu cần
                         violationTicket.MoTa = $"Tổng hợp vi phạm ngày {today:dd/MM/yyyy}";
                     }
 
-                    // Ghi nhận Chi tiết vi phạm (Lưu lại bằng chứng: Tốc độ và Tọa độ)
+                    // Ghi nhận Chi tiết vi phạm
                     var violationDetail = new ChiTietViPham
                     {
                         PhieuViPhamIdPhieuViPham = violationTicket.IdPhieuViPham,
@@ -265,14 +268,14 @@ public class GpsController : ControllerBase
                         ThoiGianXayRa = DateTime.Now
                     };
                     _context.ChiTietViPhams.Add(violationDetail);
-                }
 
-                // Phát SignalR cảnh báo vi phạm
-                await _hubContext.Clients.All.SendAsync("ReceiveViolationAlert", 
-                    vehicle.BienSo, 
-                    "Quá tốc độ", 
-                    request.Speed, 
-                    maxSpeed);
+                    // CHỈ PHÁT SIGNALR 1 LẦN KHI PHÁT HIỆN VI PHẠM MỚI TRONG HÀNH TRÌNH
+                    await _hubContext.Clients.All.SendAsync("ReceiveViolationAlert", 
+                        vehicle.BienSo, 
+                        "Quá tốc độ", 
+                        request.Speed, 
+                        maxSpeed);
+                }
             }
         }
 
@@ -536,7 +539,8 @@ public class GpsController : ControllerBase
 
                 Console.WriteLine($"[SCORE] Khách hàng {customer.HoTen}: {oldScore} -> {customer.DiemAnToan}");
 
-                if (customer.DiemAnToan < 50)
+                bool alreadyHasViolation = await _context.PhieuViPhams.AnyAsync(v => v.IdHanhTrinh == journey.IdHanhTrinh);
+                if (predictionName != "NORMAL" && customer.DiemAnToan < 50 && !alreadyHasViolation)
                 {
                     var dangerousRule = await _context.QuyDinhs.FirstOrDefaultAsync(q => q.TenQuyDinh.Contains("nguy hiểm"));
                     if (dangerousRule == null)

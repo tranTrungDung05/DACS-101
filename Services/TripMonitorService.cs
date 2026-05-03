@@ -173,7 +173,8 @@ public class TripMonitorService : BackgroundService
 
                     Console.WriteLine($"[TripMonitor - SCORE] Khách hàng {customer.HoTen}: {oldScore} -> {customer.DiemAnToan}");
 
-                    if (customer.DiemAnToan < 50)
+                    bool alreadyHasViolation = await db.PhieuViPhams.AnyAsync(v => v.IdHanhTrinh == journey.IdHanhTrinh, ct);
+                    if (predictionName != "NORMAL" && customer.DiemAnToan < 50 && !alreadyHasViolation)
                     {
                         var dangerousRule = await db.QuyDinhs.FirstOrDefaultAsync(q => q.TenQuyDinh.Contains("nguy hiểm"), ct);
                         if (dangerousRule == null)
