@@ -26,6 +26,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<PhieuViPham> PhieuViPhams { get; set; }
     public DbSet<QuyDinh> QuyDinhs { get; set; }
     public DbSet<ChiTietViPham> ChiTietViPhams { get; set; }
+    public DbSet<MauHopDong> MauHopDongs { get; set; }
 
     // 2. Cấu hình chi tiết bằng Fluent API
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -45,6 +46,7 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<PhieuViPham>().HasKey(pvp => pvp.IdPhieuViPham);
         modelBuilder.Entity<DuLieuGPS>().HasKey(gps => gps.Id);
         modelBuilder.Entity<DuLieuGiaTocKe>().HasKey(a => a.Id);
+        modelBuilder.Entity<MauHopDong>().HasKey(m => m.IdMau);
 
         // --- Cấu hình Mối quan hệ (Foreign Keys) ---
         modelBuilder.Entity<TaiKhoan>()

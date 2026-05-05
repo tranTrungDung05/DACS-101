@@ -21,7 +21,7 @@ html, body {
 
 main {
   height: calc(100vh - 56px);
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 .form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {

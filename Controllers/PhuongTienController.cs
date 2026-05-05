@@ -144,6 +144,19 @@ namespace DACS.Controllers
             return Json(new { success = false, message = "Không tìm thấy phương tiện!" });
         }
 
+        // GET: PhuongTien/Journeys/5
+        public async Task<IActionResult> Journeys(int id)
+        {
+            var vehicle = await _context.PhuongTiens
+                .Include(p => p.HanhTrinhs.OrderByDescending(h => h.NgayDi))
+                    .ThenInclude(h => h.PhieuViPhams)
+                .FirstOrDefaultAsync(p => p.IdPhuongTien == id);
+
+            if (vehicle == null) return NotFound();
+
+            return View("~/Views/PhuongTien/Journeys.cshtml", vehicle);
+        }
+
         private bool VehicleExists(int id)
         {
             return _context.PhuongTiens.Any(e => e.IdPhuongTien == id);

@@ -52,6 +52,9 @@
                                         <a asp-action="Details" asp-route-id="@item.IdHopDong" class="btn btn-sm btn-outline-info" title="Chi tiết">
                                             <i class="fas fa-eye"></i>
                                         </a>
+                                        <a asp-action="Print" asp-route-id="@item.IdHopDong" target="_blank" class="btn btn-sm btn-outline-secondary" title="In hợp đồng">
+                                            <i class="fas fa-print"></i>
+                                        </a>
                                         <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteContract(@item.IdHopDong)" title="Xóa">
                                             <i class="fas fa-trash-alt"></i>
                                         </button>

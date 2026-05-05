@@ -156,4 +156,48 @@ public class HopDongController : Controller
         }
         return Json(new { success = false, message = "Không tìm thấy hợp đồng!" });
     }
+
+    // GET: HopDong/Print/5
+    public async Task<IActionResult> Print(int id, int? templateId)
+    {
+        var contract = await _context.HopDongs
+            .Include(h => h.KhachHang)
+            .Include(h => h.TaiKhoan)
+            .Include(h => h.ChiTietHopDongs)
+                .ThenInclude(ct => ct.PhuongTien)
+            .FirstOrDefaultAsync(m => m.IdHopDong == id);
+
+        if (contract == null) return NotFound();
+
+        // Lấy mẫu hợp đồng
+        MauHopDong? template = null;
+        if (templateId.HasValue)
+        {
+            template = await _context.MauHopDongs.FindAsync(templateId.Value);
+        }
+        else
+        {
+            template = await _context.MauHopDongs.FirstOrDefaultAsync(m => m.LaMacDinh) 
+                       ?? await _context.MauHopDongs.FirstOrDefaultAsync();
+        }
+
+        if (template == null)
+        {
+            return Content("Chưa có mẫu hợp đồng nào trong hệ thống. Vui lòng tạo mẫu trước.");
+        }
+
+        // Thay thế các Placeholder
+        string content = template.NoiDungHtml;
+        content = content.Replace("[TEN_KHACH_HANG]", contract.KhachHang.HoTen);
+        content = content.Replace("[CCCD]", contract.KhachHang.MaCccd);
+        content = content.Replace("[NGAY_THUE]", contract.NgayTao.ToString("dd/MM/yyyy"));
+        content = content.Replace("[TONG_TIEN]", contract.TongTien.ToString("N0") + " VNĐ");
+        content = content.Replace("[NHAN_VIEN]", contract.TaiKhoan.HoTen);
+        
+        // Với biển số, lấy danh sách các xe
+        string bienSos = string.Join(", ", contract.ChiTietHopDongs.Select(ct => ct.PhuongTien.BienSo));
+        content = content.Replace("[BIEN_SO]", bienSos);
+
+        return View("Print", content);
+    }
 }

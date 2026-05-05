@@ -1,0 +1,82 @@
+@model IEnumerable<DACS.Models.MauHopDong>
+
+@{
+    ViewData["Title"] = "Quản lý Mẫu Hợp Đồng";
+}
+
+<div class="container-fluid py-4">
+    <div class="card shadow border-0">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <h5 class="m-0 font-weight-bold text-primary"><i class="fas fa-file-contract me-2"></i> Danh sách Mẫu Hợp Đồng</h5>
+            <a asp-action="Create" class="btn btn-primary btn-sm rounded-pill px-3">
+                <i class="fas fa-plus me-1"></i> Tạo mẫu mới
+            </a>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tên mẫu</th>
+                            <th>Ngày tạo</th>
+                            <th>Trạng thái</th>
+                            <th class="text-end">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr id="row-@item.IdMau">
+                                <td class="fw-bold text-dark">@item.TenMau</td>
+                                <td>@item.NgayTao.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>
+                                    @if (item.LaMacDinh)
+                                    {
+                                        <span class="badge bg-success rounded-pill px-3">Mặc định</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-light text-muted rounded-pill px-3">Phụ</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <a asp-action="Edit" asp-route-id="@item.IdMau" class="btn btn-outline-info btn-sm rounded-circle me-1" title="Chỉnh sửa">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button onclick="deleteTemplate(@item.IdMau)" class="btn btn-outline-danger btn-sm rounded-circle" title="Xóa">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="4" class="text-center py-5 text-muted">
+                                    <i class="fas fa-folder-open fa-3x mb-3 d-block"></i>
+                                    Chưa có mẫu hợp đồng nào. Hãy tạo mới để bắt đầu.
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function deleteTemplate(id) {
+            if (confirm('Bạn có chắc chắn muốn xóa mẫu hợp đồng này không?')) {
+                $.post('@Url.Action("Delete", "MauHopDong")', { id: id }, function (res) {
+                    if (res.success) {
+                        $('#row-' + id).fadeOut();
+                    } else {
+                        alert('Có lỗi xảy ra: ' + res.message);
+                    }
+                });
+            }
+        }
+    </script>
+}

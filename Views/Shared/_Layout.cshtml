@@ -27,30 +27,33 @@
                             <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Dashboard"><i class="fas fa-chart-line me-1"></i> Thống kê</a>
+                            <a class="nav-link text-dark fw-bold" asp-area="" asp-controller="Home" asp-action="Dashboard"><i class="fas fa-chart-line me-1"></i> Thống kê</a>
                         </li>
                         @if (User.IsInRole("Admin"))
                         {
                             <li class="nav-item">
-                                <a class="nav-link text-dark text-primary fw-bold" asp-area="" asp-controller="User" asp-action="Index"><i class="fas fa-users-cog me-1"></i> Quản lý User</a>
+                                <a class="nav-link text-dark fw-bold" asp-area="" asp-controller="User" asp-action="Index"><i class="fas fa-users-cog me-1"></i> Quản lý User</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-dark text-success fw-bold" asp-area="" asp-controller="ThietBi" asp-action="Index"><i class="fas fa-microchip me-1"></i> Quản lý Thiết bị</a>
+                                <a class="nav-link text-dark fw-bold" asp-area="" asp-controller="ThietBi" asp-action="Index"><i class="fas fa-microchip me-1"></i> Quản lý Thiết bị</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-dark text-info fw-bold" asp-area="" asp-controller="PhuongTien" asp-action="Index"><i class="fas fa-car me-1"></i> Quản lý Phương tiện</a>
+                                <a class="nav-link text-dark fw-bold" asp-area="" asp-controller="PhuongTien" asp-action="Index"><i class="fas fa-car me-1"></i> Quản lý Phương tiện</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark fw-bold" asp-area="" asp-controller="MauHopDong" asp-action="Index"><i class="fas fa-file-code me-1"></i> Mẫu hợp đồng</a>
                             </li>
                         }
                         @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
                         {
                             <li class="nav-item">
-                                <a class="nav-link text-dark text-warning fw-bold" asp-area="" asp-controller="KhachHang" asp-action="Index"><i class="fas fa-users me-1"></i> Quản lý Khách hàng</a>
+                                <a class="nav-link text-dark fw-bold" asp-area="" asp-controller="KhachHang" asp-action="Index"><i class="fas fa-users me-1"></i> Quản lý Khách hàng</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-dark text-danger fw-bold" asp-area="" asp-controller="Violation" asp-action="Index"><i class="fas fa-exclamation-triangle me-1"></i> Quản lý Vi phạm</a>
+                                <a class="nav-link text-dark fw-bold" asp-area="" asp-controller="Violation" asp-action="Index"><i class="fas fa-exclamation-triangle me-1"></i> Quản lý Vi phạm</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-dark text-secondary fw-bold" asp-area="" asp-controller="HopDong" asp-action="Index"><i class="fas fa-file-contract me-1"></i> Quản lý Hợp đồng</a>
+                                <a class="nav-link text-dark fw-bold" asp-area="" asp-controller="HopDong" asp-action="Index"><i class="fas fa-file-contract me-1"></i> Quản lý Hợp đồng</a>
                             </li>
                         }
                     </ul>

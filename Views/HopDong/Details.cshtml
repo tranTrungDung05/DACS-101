@@ -34,7 +34,10 @@
                         <label class="small text-muted d-block">Người phụ trách</label>
                         <span>@Model.TaiKhoan?.HoTen</span>
                     </div>
-                    <div class="mt-4 d-grid">
+                    <div class="mt-4 d-grid gap-2">
+                        <a asp-action="Print" asp-route-id="@Model.IdHopDong" target="_blank" class="btn btn-outline-secondary rounded-pill shadow-sm">
+                            <i class="fas fa-print me-1"></i> In hợp đồng
+                        </a>
                         <a asp-action="Index" class="btn btn-light rounded-pill border shadow-sm">
                             <i class="fas fa-arrow-left me-1"></i> Quay lại danh sách
                         </a>

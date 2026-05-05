@@ -1,0 +1,75 @@
+@model DACS.Models.MauHopDong
+
+@{
+    ViewData["Title"] = "Chỉnh sửa Mẫu Hợp Đồng";
+}
+
+<div class="container py-4">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">Mẫu hợp đồng</a></li>
+            <li class="breadcrumb-item active">Chỉnh sửa</li>
+        </ol>
+    </nav>
+
+    <div class="card shadow border-0">
+        <div class="card-header bg-info text-white py-3">
+            <h5 class="m-0"><i class="fas fa-edit me-2"></i> Chỉnh sửa: @Model.TenMau</h5>
+        </div>
+        <div class="card-body p-4">
+            <form asp-action="Edit">
+                <input type="hidden" asp-for="IdMau" />
+                <input type="hidden" asp-for="NgayTao" />
+
+                <div class="row mb-3">
+                    <div class="col-md-8">
+                        <label asp-for="TenMau" class="form-label fw-bold"></label>
+                        <input asp-for="TenMau" class="form-control" />
+                        <span asp-validation-for="TenMau" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" asp-for="LaMacDinh">
+                            <label class="form-check-label fw-bold" asp-for="LaMacDinh">Đặt làm mẫu mặc định</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label asp-for="NoiDungHtml" class="form-label fw-bold"></label>
+                    <textarea asp-for="NoiDungHtml" id="editor">@Model.NoiDungHtml</textarea>
+                    <span asp-validation-for="NoiDungHtml" class="text-danger"></span>
+                </div>
+
+                <div class="d-flex justify-content-between">
+                    <a asp-action="Index" class="btn btn-light border px-4 rounded-pill">Quay lại</a>
+                    <button type="submit" class="btn btn-info text-white px-5 rounded-pill shadow">Cập nhật mẫu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.ckeditor.com/4.22.1/full/ckeditor.js"></script>
+    <script>
+        CKEDITOR.replace('editor', {
+            height: 500,
+            toolbar: [
+                { name: 'document', items: [ 'Source', '-', 'Preview', 'Print' ] },
+                { name: 'clipboard', items: [ 'cut', 'copy', 'paste', 'pastetext', 'pasteword', '-', 'undo', 'redo' ] },
+                '/',
+                { name: 'basicstyles', items: [ 'Bold', 'Italic', 'Underline', 'Strike', '-', 'RemoveFormat' ] },
+                { name: 'paragraph', items: [ 'NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-', 'Blockquote', '-', 'JustifyLeft', 'JustifyCenter', 'JustifyRight', 'JustifyBlock' ] },
+                { name: 'links', items: [ 'Link', 'Unlink' ] },
+                { name: 'insert', items: [ 'Table', 'HorizontalRule', 'SpecialChar' ] },
+                '/',
+                { name: 'styles', items: [ 'Styles', 'Format', 'Font', 'FontSize' ] },
+                { name: 'colors', items: [ 'TextColor', 'BGColor' ] },
+                { name: 'tools', items: [ 'Maximize' ] }
+            ],
+            pasteFromWordRemoveFontStyles: false,
+            pasteFromWordRemoveStyles: false
+        });
+    </script>
+}

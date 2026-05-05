@@ -1,0 +1,112 @@
+@model DACS.Models.PhuongTien
+
+@{
+    ViewData["Title"] = "Lịch sử hành trình - " + Model.BienSo;
+}
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold text-dark mb-1">
+                <i class="fas fa-history me-2 text-info"></i>Lịch sử hành trình: <span class="badge bg-dark">@Model.BienSo</span>
+            </h3>
+            <p class="text-muted small mb-0">@Model.HangSanXuat @Model.LoaiPhuongTien - IMEI: @(Model.ThietBiGPS?.MaImei ?? "N/A")</p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4">
+            <i class="fas fa-arrow-left me-1"></i> Quay lại
+        </a>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-3">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="ps-4">Thời gian</th>
+                            <th>Quãng đường</th>
+                            <th>Hành vi lái xe</th>
+                            <th>Vi phạm</th>
+                            <th>Trạng thái</th>
+                            <th class="text-end pe-4">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.HanhTrinhs.Any())
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center py-5 text-muted">
+                                    <i class="fas fa-route d-block mb-3 fs-1 opacity-25"></i>
+                                    Phương tiện này chưa có dữ liệu hành trình.
+                                </td>
+                            </tr>
+                        }
+                        @foreach (var ht in Model.HanhTrinhs)
+                        {
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="fw-bold">@ht.NgayDi.ToString("dd/MM/yyyy")</div>
+                                    <div class="small text-muted">
+                                        <i class="far fa-clock me-1"></i> @ht.NgayDi.ToString("HH:mm") - @(ht.NgayDen > ht.NgayDi ? ht.NgayDen.ToString("HH:mm") : "...")
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="fw-bold text-primary">@ht.TongQuangDuong.ToString("N2")</span> <small>km</small>
+                                </td>
+                                <td>
+                                    @switch (ht.PhanLoaiHanhVi)
+                                    {
+                                        case "NORMAL":
+                                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3">
+                                                <i class="fas fa-check-circle me-1"></i> Bình thường
+                                            </span>
+                                            break;
+                                        case "AGGRESSIVE":
+                                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-3">
+                                                <i class="fas fa-bolt me-1"></i> Nguy hiểm
+                                            </span>
+                                            break;
+                                        case "DROWSY":
+                                            <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-3">
+                                                <i class="fas fa-bed me-1"></i> Buồn ngủ
+                                            </span>
+                                            break;
+                                        default:
+                                            <span class="badge bg-light text-muted border px-3">Đang xử lý...</span>
+                                            break;
+                                    }
+                                </td>
+                                <td>
+                                    @if (ht.PhieuViPhams.Any())
+                                    {
+                                        <span class="badge bg-danger rounded-pill">@ht.PhieuViPhams.Count lỗi</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">Không có</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (ht.TrangThai)
+                                    {
+                                        <span class="spinner-grow spinner-grow-sm text-success me-1"></span>
+                                        <span class="text-success small fw-bold">Đang đi</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-light text-muted rounded-pill px-2 small">Đã kết thúc</span>
+                                    }
+                                </td>
+                                <td class="text-end pe-4">
+                                    <a href="/Home/Index?plate=@Model.BienSo&journeyId=@ht.IdHanhTrinh" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm">
+                                        <i class="fas fa-map-marker-alt me-1"></i> Xem bản đồ
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

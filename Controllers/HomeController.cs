@@ -17,12 +17,23 @@ public class HomeController : Controller
         _context = context;
     }
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(string? plate, int? journeyId)
     {
         var vehicles = await _context.PhuongTiens
             .Include(p => p.HanhTrinhs)
                 .ThenInclude(h => h.DuLieuGPS)
             .ToListAsync();
+
+        if (journeyId.HasValue)
+        {
+            var specificJourney = await _context.HanhTrinhs
+                .Include(h => h.DuLieuGPS)
+                .Include(h => h.PhieuViPhams)
+                .FirstOrDefaultAsync(h => h.IdHanhTrinh == journeyId);
+            
+            ViewBag.SpecificJourney = specificJourney;
+            ViewBag.SelectedPlate = plate;
+        }
 
         return View(vehicles);
     }
