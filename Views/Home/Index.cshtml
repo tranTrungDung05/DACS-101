@@ -54,6 +54,7 @@
                         <span class="badge @(item.TrangThai ? "bg-success" : "bg-warning text-dark")">@(item.TrangThai ? "Sẵn sàng" : "Đang bận")</span>
                     </div>
                     <div class="small text-muted mt-1">Cập nhật: @(latestGPS != null ? latestGPS.Timestamp.ToString("HH:mm") : "N/A")</div>
+                    <div class="eta-text text-primary small mt-1"></div>
                     <div class="mt-2">
                         <button class="btn btn-xs btn-primary py-0 px-2" onclick="openHistory('@item.BienSo', event)"><i class="fas fa-route"></i> Lịch sử</button>
                     </div>
@@ -102,7 +103,8 @@
                     @:    pos: [@latestGPS.ViDo, @latestGPS.KinhDo],
                     @:    waypoints: [@Html.Raw(string.Join(",", waypoints ?? new List<string>()))],
                     @:    violation: null, 
-                    @:    detailedRoute: null
+                    @:    detailedRoute: null,
+                    @:    etaMessage: null
                     @: },
                 }
             }
@@ -142,7 +144,7 @@
             
             if (!markers[plate]) {
                 markers[plate] = L.marker([lat, lng], { icon: carIcon }).addTo(map).bindPopup(`<b>${plate}</b>`);
-                db[plate] = { pos: [lat, lng], waypoints: [[lat, lng]], detailedRoute: null, violation: null };
+                db[plate] = { pos: [lat, lng], waypoints: [[lat, lng]], detailedRoute: null, violation: null, etaMessage: null };
             } else {
                 markers[plate].setLatLng([lat, lng]);
                 db[plate].pos = [lat, lng];
@@ -160,6 +162,24 @@
                 }
                 const updateTime = item.querySelector('.text-muted');
                 if (updateTime) updateTime.innerText = "Cập nhật: Vừa xong";
+            }
+        });
+
+        connection.on("ReceiveEtaUpdate", (plate, message) => {
+            if (!db[plate]) {
+                return;
+            }
+
+            db[plate].etaMessage = message;
+
+            const item = document.getElementById('item-' + plate.replace(/[-.]/g, ''));
+            if (!item) {
+                return;
+            }
+
+            const etaNode = item.querySelector('.eta-text');
+            if (etaNode) {
+                etaNode.innerText = message;
             }
         });
 
@@ -352,4 +372,3 @@
         }
     </script>
 }
-

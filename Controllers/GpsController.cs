@@ -20,8 +20,9 @@ public class GpsController : ControllerBase
     private readonly ISpeedLimitService _speedLimitService;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IETAService _etaService;
 
-    public GpsController(ApplicationDbContext context, IHubContext<GpsHub> hubContext, IConfiguration configuration, ISpeedLimitService speedLimitService, IHttpClientFactory httpClientFactory, IServiceScopeFactory scopeFactory)
+    public GpsController(ApplicationDbContext context, IHubContext<GpsHub> hubContext, IConfiguration configuration, ISpeedLimitService speedLimitService, IHttpClientFactory httpClientFactory, IServiceScopeFactory scopeFactory, IETAService etaService)
     {
         _context = context;
         _hubContext = hubContext;
@@ -29,6 +30,7 @@ public class GpsController : ControllerBase
         _speedLimitService = speedLimitService;
         _httpClientFactory = httpClientFactory;
         _scopeFactory = scopeFactory;
+        _etaService = etaService;
     }
 
     // POST: api/Gps/Update
@@ -281,6 +283,17 @@ public class GpsController : ControllerBase
 
         await _context.SaveChangesAsync();
 
+        var etaPoints = await LoadJourneyEtaPointsAsync(journey.IdHanhTrinh);
+        if (etaPoints.Count >= 3)
+        {
+            var etaResult = await _etaService.PredictAsync(etaPoints, HttpContext.RequestAborted);
+            if (etaResult != null)
+            {
+                var etaMessage = $"thời gian còn lại đến đích: {etaResult.EtaMinutes:0.0}p";
+                await _hubContext.Clients.All.SendAsync("ReceiveEtaUpdate", vehicle.BienSo, etaMessage);
+            }
+        }
+
         // 7. Phát qua SignalR gửi biển số xe
         await _hubContext.Clients.All.SendAsync("ReceiveLocationUpdate", 
             vehicle.BienSo, 
@@ -307,6 +320,15 @@ public class GpsController : ControllerBase
     private double ToRadians(double deg)
     {
         return deg * (Math.PI / 180);
+    }
+
+    private async Task<List<ETAGpsPoint>> LoadJourneyEtaPointsAsync(int journeyId)
+    {
+        return await _context.DuLieuGPS
+            .Where(d => d.HanhTrinhIdHanhTrinh == journeyId)
+            .OrderBy(d => d.Timestamp)
+            .Select(d => new ETAGpsPoint((double)d.ViDo, (double)d.KinhDo))
+            .ToListAsync();
     }
 
     /// <summary>
