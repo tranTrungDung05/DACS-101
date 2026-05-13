@@ -9,6 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<ISpeedLimitService, SpeedLimitService>();
+builder.Services.AddScoped<IETAService, ETAService>();
 builder.Services.AddHostedService<TripMonitorService>();
 
 //--------------------------------
