@@ -10,211 +10,106 @@ namespace DACS.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_ChiTietHopDongs_HopDongs_HopDongIdHopDong",
-                table: "ChiTietHopDongs");
+            migrationBuilder.Sql(
+                @"
+IF OBJECT_ID(N'[FK_ChiTietHopDongs_HopDongs_HopDongIdHopDong]', N'F') IS NOT NULL
+    ALTER TABLE [ChiTietHopDongs] DROP CONSTRAINT [FK_ChiTietHopDongs_HopDongs_HopDongIdHopDong];
+IF OBJECT_ID(N'[FK_ChiTietHopDongs_PhuongTiens_PhuongTienIdPhuongTien]', N'F') IS NOT NULL
+    ALTER TABLE [ChiTietHopDongs] DROP CONSTRAINT [FK_ChiTietHopDongs_PhuongTiens_PhuongTienIdPhuongTien];
+IF OBJECT_ID(N'[FK_DuLieuGPS_ThietBiGPS_ThietBiGPSIdThietBi]', N'F') IS NOT NULL
+    ALTER TABLE [DuLieuGPS] DROP CONSTRAINT [FK_DuLieuGPS_ThietBiGPS_ThietBiGPSIdThietBi];
+IF OBJECT_ID(N'[FK_HanhTrinhs_PhuongTiens_PhuongTienIdPhuongTien]', N'F') IS NOT NULL
+    ALTER TABLE [HanhTrinhs] DROP CONSTRAINT [FK_HanhTrinhs_PhuongTiens_PhuongTienIdPhuongTien];
+IF OBJECT_ID(N'[FK_HopDongs_KhachHangs_KhachHangMaCccd]', N'F') IS NOT NULL
+    ALTER TABLE [HopDongs] DROP CONSTRAINT [FK_HopDongs_KhachHangs_KhachHangMaCccd];
+IF OBJECT_ID(N'[FK_HopDongs_TaiKhoans_TaiKhoanIdTaiKhoan]', N'F') IS NOT NULL
+    ALTER TABLE [HopDongs] DROP CONSTRAINT [FK_HopDongs_TaiKhoans_TaiKhoanIdTaiKhoan];
+IF OBJECT_ID(N'[FK_PhieuViPhams_HanhTrinhs_HanhTrinhIdHanhTrinh]', N'F') IS NOT NULL
+    ALTER TABLE [PhieuViPhams] DROP CONSTRAINT [FK_PhieuViPhams_HanhTrinhs_HanhTrinhIdHanhTrinh];
+IF OBJECT_ID(N'[FK_PhieuViPhams_HanhTrinhs]', N'F') IS NOT NULL
+    ALTER TABLE [PhieuViPhams] DROP CONSTRAINT [FK_PhieuViPhams_HanhTrinhs];
+IF OBJECT_ID(N'[FK_PhieuViPhams_KhachHangs_KhachHangMaCccd]', N'F') IS NOT NULL
+    ALTER TABLE [PhieuViPhams] DROP CONSTRAINT [FK_PhieuViPhams_KhachHangs_KhachHangMaCccd];
+IF OBJECT_ID(N'[FK_PhieuViPhams_KhachHangs]', N'F') IS NOT NULL
+    ALTER TABLE [PhieuViPhams] DROP CONSTRAINT [FK_PhieuViPhams_KhachHangs];
 
-            migrationBuilder.DropForeignKey(
-                name: "FK_ChiTietHopDongs_PhuongTiens_PhuongTienIdPhuongTien",
-                table: "ChiTietHopDongs");
+IF COL_LENGTH('HanhTrinhs', 'PhuongTienIdPhuongTien') IS NOT NULL AND COL_LENGTH('HanhTrinhs', 'IdPhuongTien') IS NULL
+    EXEC sp_rename N'[HanhTrinhs].[PhuongTienIdPhuongTien]', N'IdPhuongTien', N'COLUMN';
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[HanhTrinhs]') AND name = N'IX_HanhTrinhs_PhuongTienIdPhuongTien')
+    AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[HanhTrinhs]') AND name = N'IX_HanhTrinhs_IdPhuongTien')
+    EXEC sp_rename N'[HanhTrinhs].[IX_HanhTrinhs_PhuongTienIdPhuongTien]', N'IX_HanhTrinhs_IdPhuongTien', N'INDEX';
 
-            migrationBuilder.DropForeignKey(
-                name: "FK_DuLieuGPS_ThietBiGPS_ThietBiGPSIdThietBi",
-                table: "DuLieuGPS");
+IF COL_LENGTH('DuLieuGPS', 'ThietBiGPSIdThietBi') IS NOT NULL AND COL_LENGTH('DuLieuGPS', 'IdThietBi') IS NULL
+    EXEC sp_rename N'[DuLieuGPS].[ThietBiGPSIdThietBi]', N'IdThietBi', N'COLUMN';
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[DuLieuGPS]') AND name = N'IX_DuLieuGPS_ThietBiGPSIdThietBi')
+    AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[DuLieuGPS]') AND name = N'IX_DuLieuGPS_IdThietBi')
+    EXEC sp_rename N'[DuLieuGPS].[IX_DuLieuGPS_ThietBiGPSIdThietBi]', N'IX_DuLieuGPS_IdThietBi', N'INDEX';
 
-            migrationBuilder.DropForeignKey(
-                name: "FK_HanhTrinhs_PhuongTiens_PhuongTienIdPhuongTien",
-                table: "HanhTrinhs");
+IF COL_LENGTH('PhieuViPhams', 'HanhTrinhIdHanhTrinh') IS NOT NULL AND COL_LENGTH('PhieuViPhams', 'IdHanhTrinh') IS NULL
+    EXEC sp_rename N'[PhieuViPhams].[HanhTrinhIdHanhTrinh]', N'IdHanhTrinh', N'COLUMN';
+IF COL_LENGTH('PhieuViPhams', 'KhachHangMaCccd') IS NOT NULL AND COL_LENGTH('PhieuViPhams', 'MaCccd') IS NULL
+    EXEC sp_rename N'[PhieuViPhams].[KhachHangMaCccd]', N'MaCccd', N'COLUMN';
 
-            migrationBuilder.DropForeignKey(
-                name: "FK_HopDongs_KhachHangs_KhachHangMaCccd",
-                table: "HopDongs");
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[PhieuViPhams]') AND name = N'IX_PhieuViPhams_HanhTrinhIdHanhTrinh')
+    AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[PhieuViPhams]') AND name = N'IX_PhieuViPhams_IdHanhTrinh')
+    EXEC sp_rename N'[PhieuViPhams].[IX_PhieuViPhams_HanhTrinhIdHanhTrinh]', N'IX_PhieuViPhams_IdHanhTrinh', N'INDEX';
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[PhieuViPhams]') AND name = N'IX_PhieuViPhams_KhachHangMaCccd')
+    AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[PhieuViPhams]') AND name = N'IX_PhieuViPhams_MaCccd')
+    EXEC sp_rename N'[PhieuViPhams].[IX_PhieuViPhams_KhachHangMaCccd]', N'IX_PhieuViPhams_MaCccd', N'INDEX';
 
-            migrationBuilder.DropForeignKey(
-                name: "FK_HopDongs_TaiKhoans_TaiKhoanIdTaiKhoan",
-                table: "HopDongs");
+IF COL_LENGTH('HopDongs', 'KhachHangMaCccd') IS NOT NULL
+    ALTER TABLE [HopDongs] DROP COLUMN [KhachHangMaCccd];
+IF COL_LENGTH('HopDongs', 'TaiKhoanIdTaiKhoan') IS NOT NULL
+    ALTER TABLE [HopDongs] DROP COLUMN [TaiKhoanIdTaiKhoan];
+IF COL_LENGTH('ChiTietHopDongs', 'HopDongIdHopDong') IS NOT NULL
+    ALTER TABLE [ChiTietHopDongs] DROP COLUMN [HopDongIdHopDong];
+IF COL_LENGTH('ChiTietHopDongs', 'PhuongTienIdPhuongTien') IS NOT NULL
+    ALTER TABLE [ChiTietHopDongs] DROP COLUMN [PhuongTienIdPhuongTien];
 
-            migrationBuilder.DropForeignKey(
-                name: "FK_PhieuViPhams_HanhTrinhs_HanhTrinhIdHanhTrinh",
-                table: "PhieuViPhams");
+IF COL_LENGTH('HopDongs', 'MaCccd') IS NOT NULL
+BEGIN
+    UPDATE [HopDongs] SET [MaCccd] = N'' WHERE [MaCccd] IS NULL;
+    ALTER TABLE [HopDongs] ALTER COLUMN [MaCccd] nvarchar(450) NOT NULL;
+END
+IF COL_LENGTH('PhieuViPhams', 'MaCccd') IS NOT NULL
+    ALTER TABLE [PhieuViPhams] ALTER COLUMN [MaCccd] nvarchar(450) NOT NULL;
 
-            migrationBuilder.DropForeignKey(
-                name: "FK_PhieuViPhams_KhachHangs_KhachHangMaCccd",
-                table: "PhieuViPhams");
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[PhieuViPhams]') AND name = N'IX_PhieuViPhams_IdHanhTrinh')
+    CREATE INDEX [IX_PhieuViPhams_IdHanhTrinh] ON [PhieuViPhams] ([IdHanhTrinh]);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[PhieuViPhams]') AND name = N'IX_PhieuViPhams_MaCccd')
+    CREATE INDEX [IX_PhieuViPhams_MaCccd] ON [PhieuViPhams] ([MaCccd]);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[HopDongs]') AND name = N'IX_HopDongs_IdTaiKhoan')
+    CREATE INDEX [IX_HopDongs_IdTaiKhoan] ON [HopDongs] ([IdTaiKhoan]);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[HopDongs]') AND name = N'IX_HopDongs_MaCccd')
+    CREATE INDEX [IX_HopDongs_MaCccd] ON [HopDongs] ([MaCccd]);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'[ChiTietHopDongs]') AND name = N'IX_ChiTietHopDongs_IdHopDong')
+    CREATE INDEX [IX_ChiTietHopDongs_IdHopDong] ON [ChiTietHopDongs] ([IdHopDong]);
 
-            migrationBuilder.DropIndex(
-                name: "IX_PhieuViPhams_HanhTrinhIdHanhTrinh",
-                table: "PhieuViPhams");
-
-            migrationBuilder.DropIndex(
-                name: "IX_PhieuViPhams_KhachHangMaCccd",
-                table: "PhieuViPhams");
-
-            migrationBuilder.DropIndex(
-                name: "IX_HopDongs_KhachHangMaCccd",
-                table: "HopDongs");
-
-            migrationBuilder.DropIndex(
-                name: "IX_HopDongs_TaiKhoanIdTaiKhoan",
-                table: "HopDongs");
-
-            migrationBuilder.DropIndex(
-                name: "IX_ChiTietHopDongs_HopDongIdHopDong",
-                table: "ChiTietHopDongs");
-
-            migrationBuilder.DropIndex(
-                name: "IX_ChiTietHopDongs_PhuongTienIdPhuongTien",
-                table: "ChiTietHopDongs");
-
-            migrationBuilder.DropColumn(
-                name: "HanhTrinhIdHanhTrinh",
-                table: "PhieuViPhams");
-
-            migrationBuilder.DropColumn(
-                name: "KhachHangMaCccd",
-                table: "PhieuViPhams");
-
-            migrationBuilder.DropColumn(
-                name: "KhachHangMaCccd",
-                table: "HopDongs");
-
-            migrationBuilder.DropColumn(
-                name: "TaiKhoanIdTaiKhoan",
-                table: "HopDongs");
-
-            migrationBuilder.DropColumn(
-                name: "HopDongIdHopDong",
-                table: "ChiTietHopDongs");
-
-            migrationBuilder.DropColumn(
-                name: "PhuongTienIdPhuongTien",
-                table: "ChiTietHopDongs");
-
-            migrationBuilder.RenameColumn(
-                name: "PhuongTienIdPhuongTien",
-                table: "HanhTrinhs",
-                newName: "IdPhuongTien");
-
-            migrationBuilder.RenameIndex(
-                name: "IX_HanhTrinhs_PhuongTienIdPhuongTien",
-                table: "HanhTrinhs",
-                newName: "IX_HanhTrinhs_IdPhuongTien");
-
-            migrationBuilder.RenameColumn(
-                name: "ThietBiGPSIdThietBi",
-                table: "DuLieuGPS",
-                newName: "IdThietBi");
-
-            migrationBuilder.RenameIndex(
-                name: "IX_DuLieuGPS_ThietBiGPSIdThietBi",
-                table: "DuLieuGPS",
-                newName: "IX_DuLieuGPS_IdThietBi");
-
-            migrationBuilder.AlterColumn<string>(
-                name: "MaCccd",
-                table: "PhieuViPhams",
-                type: "nvarchar(450)",
-                nullable: false,
-                oldClrType: typeof(string),
-                oldType: "nvarchar(max)");
-
-            migrationBuilder.AlterColumn<string>(
-                name: "MaCccd",
-                table: "HopDongs",
-                type: "nvarchar(450)",
-                nullable: false,
-                defaultValue: "",
-                oldClrType: typeof(string),
-                oldType: "nvarchar(max)",
-                oldNullable: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_PhieuViPhams_IdHanhTrinh",
-                table: "PhieuViPhams",
-                column: "IdHanhTrinh");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_PhieuViPhams_MaCccd",
-                table: "PhieuViPhams",
-                column: "MaCccd");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_HopDongs_IdTaiKhoan",
-                table: "HopDongs",
-                column: "IdTaiKhoan");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_HopDongs_MaCccd",
-                table: "HopDongs",
-                column: "MaCccd");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ChiTietHopDongs_IdHopDong",
-                table: "ChiTietHopDongs",
-                column: "IdHopDong");
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_ChiTietHopDongs_HopDongs_IdHopDong",
-                table: "ChiTietHopDongs",
-                column: "IdHopDong",
-                principalTable: "HopDongs",
-                principalColumn: "IdHopDong",
-                onDelete: ReferentialAction.Cascade);
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_ChiTietHopDongs_PhuongTiens_IdPhuongTien",
-                table: "ChiTietHopDongs",
-                column: "IdPhuongTien",
-                principalTable: "PhuongTiens",
-                principalColumn: "IdPhuongTien",
-                onDelete: ReferentialAction.Cascade);
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_DuLieuGPS_ThietBiGPS_IdThietBi",
-                table: "DuLieuGPS",
-                column: "IdThietBi",
-                principalTable: "ThietBiGPS",
-                principalColumn: "IdThietBi");
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_HanhTrinhs_PhuongTiens_IdPhuongTien",
-                table: "HanhTrinhs",
-                column: "IdPhuongTien",
-                principalTable: "PhuongTiens",
-                principalColumn: "IdPhuongTien",
-                onDelete: ReferentialAction.Cascade);
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_HopDongs_KhachHangs_MaCccd",
-                table: "HopDongs",
-                column: "MaCccd",
-                principalTable: "KhachHangs",
-                principalColumn: "MaCccd",
-                onDelete: ReferentialAction.Cascade);
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_HopDongs_TaiKhoans_IdTaiKhoan",
-                table: "HopDongs",
-                column: "IdTaiKhoan",
-                principalTable: "TaiKhoans",
-                principalColumn: "IdTaiKhoan",
-                onDelete: ReferentialAction.Cascade);
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_PhieuViPhams_HanhTrinhs_IdHanhTrinh",
-                table: "PhieuViPhams",
-                column: "IdHanhTrinh",
-                principalTable: "HanhTrinhs",
-                principalColumn: "IdHanhTrinh",
-                onDelete: ReferentialAction.Cascade);
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_PhieuViPhams_KhachHangs_MaCccd",
-                table: "PhieuViPhams",
-                column: "MaCccd",
-                principalTable: "KhachHangs",
-                principalColumn: "MaCccd",
-                onDelete: ReferentialAction.Cascade);
+IF OBJECT_ID(N'[FK_ChiTietHopDongs_HopDongs_IdHopDong]', N'F') IS NULL
+    ALTER TABLE [ChiTietHopDongs] ADD CONSTRAINT [FK_ChiTietHopDongs_HopDongs_IdHopDong]
+    FOREIGN KEY ([IdHopDong]) REFERENCES [HopDongs] ([IdHopDong]) ON DELETE CASCADE;
+IF OBJECT_ID(N'[FK_ChiTietHopDongs_PhuongTiens_IdPhuongTien]', N'F') IS NULL
+    ALTER TABLE [ChiTietHopDongs] ADD CONSTRAINT [FK_ChiTietHopDongs_PhuongTiens_IdPhuongTien]
+    FOREIGN KEY ([IdPhuongTien]) REFERENCES [PhuongTiens] ([IdPhuongTien]) ON DELETE CASCADE;
+IF OBJECT_ID(N'[FK_DuLieuGPS_ThietBiGPS_IdThietBi]', N'F') IS NULL AND COL_LENGTH('DuLieuGPS', 'IdThietBi') IS NOT NULL
+    ALTER TABLE [DuLieuGPS] ADD CONSTRAINT [FK_DuLieuGPS_ThietBiGPS_IdThietBi]
+    FOREIGN KEY ([IdThietBi]) REFERENCES [ThietBiGPS] ([IdThietBi]);
+IF OBJECT_ID(N'[FK_HanhTrinhs_PhuongTiens_IdPhuongTien]', N'F') IS NULL
+    ALTER TABLE [HanhTrinhs] ADD CONSTRAINT [FK_HanhTrinhs_PhuongTiens_IdPhuongTien]
+    FOREIGN KEY ([IdPhuongTien]) REFERENCES [PhuongTiens] ([IdPhuongTien]) ON DELETE CASCADE;
+IF OBJECT_ID(N'[FK_HopDongs_KhachHangs_MaCccd]', N'F') IS NULL
+    ALTER TABLE [HopDongs] ADD CONSTRAINT [FK_HopDongs_KhachHangs_MaCccd]
+    FOREIGN KEY ([MaCccd]) REFERENCES [KhachHangs] ([MaCccd]) ON DELETE CASCADE;
+IF OBJECT_ID(N'[FK_HopDongs_TaiKhoans_IdTaiKhoan]', N'F') IS NULL
+    ALTER TABLE [HopDongs] ADD CONSTRAINT [FK_HopDongs_TaiKhoans_IdTaiKhoan]
+    FOREIGN KEY ([IdTaiKhoan]) REFERENCES [TaiKhoans] ([IdTaiKhoan]) ON DELETE CASCADE;
+IF OBJECT_ID(N'[FK_PhieuViPhams_HanhTrinhs_IdHanhTrinh]', N'F') IS NULL
+    ALTER TABLE [PhieuViPhams] ADD CONSTRAINT [FK_PhieuViPhams_HanhTrinhs_IdHanhTrinh]
+    FOREIGN KEY ([IdHanhTrinh]) REFERENCES [HanhTrinhs] ([IdHanhTrinh]) ON DELETE CASCADE;
+IF OBJECT_ID(N'[FK_PhieuViPhams_KhachHangs_MaCccd]', N'F') IS NULL
+    ALTER TABLE [PhieuViPhams] ADD CONSTRAINT [FK_PhieuViPhams_KhachHangs_MaCccd]
+    FOREIGN KEY ([MaCccd]) REFERENCES [KhachHangs] ([MaCccd]) ON DELETE CASCADE;
+");
         }
 
         /// <inheritdoc />

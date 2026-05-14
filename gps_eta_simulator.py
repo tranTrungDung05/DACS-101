@@ -11,7 +11,7 @@ INTERVAL_SECONDS = 15
 
 VEHICLES_CONFIG = [
     {
-        "id": 1,
+        "id": 13,
         "name": "Xe ETA 1",
         "gps_file": "sample_trips/eta_trip_vehicle_1.csv",
     },

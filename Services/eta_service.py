@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
@@ -31,6 +32,33 @@ class ETAServiceHandler(BaseHTTPRequestHandler):
         raw = self.rfile.read(content_length)
         return json.loads(raw.decode("utf-8"))
 
+    def _log_prediction(
+        self,
+        point_tuples: list[tuple[float, float]],
+        destination_tuple: tuple[float, float],
+        prediction,
+    ) -> None:
+        current_lon, current_lat = point_tuples[-1]
+        dest_lon, dest_lat = destination_tuple
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        print(f"[{timestamp}] ETA DEBUG", flush=True)
+        print(f"  observed_points: {len(point_tuples)}", flush=True)
+        print(f"  current_point: lon={current_lon:.6f}, lat={current_lat:.6f}", flush=True)
+        print(f"  destination: lon={dest_lon:.6f}, lat={dest_lat:.6f}", flush=True)
+        print(f"  selected_model: {prediction.selected_model}", flush=True)
+        print(
+            f"  eta: {prediction.eta_seconds:.2f}s ({prediction.eta_minutes:.2f}m)",
+            flush=True,
+        )
+        print("  stage_predictions:", flush=True)
+        for name, value in prediction.route_stage_predictions.items():
+            print(f"    - {name}: {value:.2f}s ({value / 60:.2f}m)", flush=True)
+        print("  features:", flush=True)
+        for name, value in prediction.features.items():
+            print(f"    - {name}: {value:.6f}", flush=True)
+        print("", flush=True)
+
     def do_GET(self) -> None:
         if self.path == "/health":
             self._send_json({"status": "ok", "feature_columns": BUNDLE.feature_columns})
@@ -59,6 +87,7 @@ class ETAServiceHandler(BaseHTTPRequestHandler):
             point_tuples = [(float(point["lon"]), float(point["lat"])) for point in gps_points]
             destination_tuple = (float(destination["lon"]), float(destination["lat"]))
             prediction = predict_eta_from_points(point_tuples, destination_tuple, bundle=BUNDLE)
+            self._log_prediction(point_tuples, destination_tuple, prediction)
 
             self._send_json(
                 {

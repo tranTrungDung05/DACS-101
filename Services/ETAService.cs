@@ -5,7 +5,7 @@ namespace DACS.Services;
 
 public interface IETAService
 {
-    Task<ETAResult?> PredictAsync(IReadOnlyList<ETAGpsPoint> gpsPoints, CancellationToken cancellationToken = default);
+    Task<ETAResult?> PredictAsync(IReadOnlyList<ETAGpsPoint> gpsPoints, ETAGpsPoint destination, CancellationToken cancellationToken = default);
 }
 
 public record ETAGpsPoint(double Latitude, double Longitude);
@@ -24,7 +24,7 @@ public class ETAService : IETAService
         _logger = logger;
     }
 
-    public async Task<ETAResult?> PredictAsync(IReadOnlyList<ETAGpsPoint> gpsPoints, CancellationToken cancellationToken = default)
+    public async Task<ETAResult?> PredictAsync(IReadOnlyList<ETAGpsPoint> gpsPoints, ETAGpsPoint destination, CancellationToken cancellationToken = default)
     {
         if (gpsPoints.Count < 3)
         {
@@ -32,13 +32,11 @@ public class ETAService : IETAService
         }
 
         var etaServiceUrl = _configuration.GetValue<string>("EtaServiceUrl") ?? "http://127.0.0.1:8001";
-        var destinationLat = _configuration.GetValue<double>("EtaDestinationLat");
-        var destinationLon = _configuration.GetValue<double>("EtaDestinationLon");
 
         var payload = new
         {
             gps_points = gpsPoints.Select(point => new { lat = point.Latitude, lon = point.Longitude }),
-            destination = new { lat = destinationLat, lon = destinationLon }
+            destination = new { lat = destination.Latitude, lon = destination.Longitude }
         };
 
         try

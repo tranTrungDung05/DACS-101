@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using System.Collections.Concurrent;
 using DACS.Services;
 
 namespace DACS.Controllers;
@@ -14,6 +15,8 @@ namespace DACS.Controllers;
 [ApiController]
 public class GpsController : ControllerBase
 {
+    private const double EtaArrivalThresholdKm = 0.03;
+    private static readonly ConcurrentDictionary<int, List<ETAGpsPoint>> EtaRawPointBuffer = new();
     private readonly ApplicationDbContext _context;
     private readonly IHubContext<GpsHub> _hubContext;
     private readonly IConfiguration _configuration;
@@ -38,6 +41,9 @@ public class GpsController : ControllerBase
     public async Task<IActionResult> Update([FromBody] GpsUpdateDto request)
     {
         if (request == null) return BadRequest();
+
+        var rawLatitude = request.Latitude;
+        var rawLongitude = request.Longitude;
 
         // --- NẮN TỌA ĐỘ DÍNH ĐƯỜNG (MAP MATCHING) ---
         var (snappedLat, snappedLon) = await _speedLimitService.SnapToRoad(request.Latitude, request.Longitude);
@@ -101,6 +107,7 @@ public class GpsController : ControllerBase
                     Console.ForegroundColor = ConsoleColor.Magenta;
                     Console.WriteLine($"[TRIP] Đóng hành trình #{journey.IdHanhTrinh} ({vehicle.BienSo}) - Nghỉ {gap.TotalMinutes:N0} phút > ngưỡng {TRIP_GAP_MINUTES} phút");
                     Console.ResetColor();
+                    EtaRawPointBuffer.TryRemove(journey.IdHanhTrinh, out _);
 
                     // TỰ ĐỘNG PHÂN TÍCH hành trình vừa đóng (chạy nền, không block request)
                     var closedJourneyId = journey.IdHanhTrinh;
@@ -165,7 +172,6 @@ public class GpsController : ControllerBase
             ViDo = request.Latitude,
             KinhDo = request.Longitude,
             TocDo = request.Speed,
-            GpsX = request.GpsX.HasValue ? request.GpsX.Value : null,
             Timestamp = DateTime.Now
         };
         _context.DuLieuGPS.Add(gpsData);
@@ -283,10 +289,25 @@ public class GpsController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        var etaPoints = await LoadJourneyEtaPointsAsync(journey.IdHanhTrinh);
-        if (etaPoints.Count >= 3)
+        var etaPoints = AppendAndGetEtaPoints(
+            journey.IdHanhTrinh,
+            new ETAGpsPoint(rawLatitude, rawLongitude)
+        );
+        var etaDestination = ResolveEtaDestination(vehicle.IdPhuongTien);
+        var distanceToEtaDestinationKm = CalculateDistance(
+            rawLatitude,
+            rawLongitude,
+            etaDestination.Latitude,
+            etaDestination.Longitude
+        );
+
+        if (distanceToEtaDestinationKm <= EtaArrivalThresholdKm)
         {
-            var etaResult = await _etaService.PredictAsync(etaPoints, HttpContext.RequestAborted);
+            await _hubContext.Clients.All.SendAsync("ReceiveEtaUpdate", vehicle.BienSo, "đã tới nơi rồi");
+        }
+        else if (etaPoints.Count >= 3)
+        {
+            var etaResult = await _etaService.PredictAsync(etaPoints, etaDestination, HttpContext.RequestAborted);
             if (etaResult != null)
             {
                 var etaMessage = $"thời gian còn lại đến đích: {etaResult.EtaMinutes:0.0}p";
@@ -329,6 +350,32 @@ public class GpsController : ControllerBase
             .OrderBy(d => d.Timestamp)
             .Select(d => new ETAGpsPoint((double)d.ViDo, (double)d.KinhDo))
             .ToListAsync();
+    }
+
+    private List<ETAGpsPoint> AppendAndGetEtaPoints(int journeyId, ETAGpsPoint rawPoint)
+    {
+        var points = EtaRawPointBuffer.GetOrAdd(journeyId, _ => new List<ETAGpsPoint>());
+
+        lock (points)
+        {
+            points.Add(rawPoint);
+            return points.ToList();
+        }
+    }
+
+    private ETAGpsPoint ResolveEtaDestination(int vehicleId)
+    {
+        var vehicleSection = _configuration.GetSection($"EtaDestinations:{vehicleId}");
+        if (vehicleSection.Exists())
+        {
+            var lat = vehicleSection.GetValue<double>("Lat");
+            var lon = vehicleSection.GetValue<double>("Lon");
+            return new ETAGpsPoint(lat, lon);
+        }
+
+        var fallbackLat = _configuration.GetValue<double>("EtaDestinationLat");
+        var fallbackLon = _configuration.GetValue<double>("EtaDestinationLon");
+        return new ETAGpsPoint(fallbackLat, fallbackLon);
     }
 
     /// <summary>
@@ -495,8 +542,7 @@ public class GpsController : ControllerBase
             timestamp_s = (d.Timestamp - startTime).TotalSeconds,
             lat = (double)d.ViDo,
             lon = (double)d.KinhDo,
-            speed_kmh = (double)d.TocDo,
-            gps_x = d.GpsX.HasValue ? (double)d.GpsX.Value : (double?)null
+            speed_kmh = (double)d.TocDo
         }).ToList();
 
         var accelPoints = accelData.Select(d => new {
@@ -620,7 +666,6 @@ public class GpsUpdateDto
     public double Latitude { get; set; }
     public double Longitude { get; set; }
     public double Speed { get; set; }
-    public double? GpsX { get; set; }
 
     /// <summary>Gia tốc dọc (g) - đơn lẻ</summary>
     public double? AccelLongG { get; set; }

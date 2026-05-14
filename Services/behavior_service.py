@@ -93,26 +93,6 @@ class BehaviorPredictor:
         gps_frame = pd.DataFrame(gps_points)
         accel_frame = pd.DataFrame(accel_points)
 
-        # When these extra raw-derived columns are present, reproduce the same
-        # feature space used to build dataset_final_v2.csv for the legacy model.
-        if "gps_x" in gps_frame.columns and "accel_lat_smooth_g" in accel_frame.columns:
-            speed = pd.to_numeric(gps_frame["gps_x"], errors="coerce").clip(lower=0).dropna()
-            accel_long = pd.to_numeric(accel_frame["accel_lat_g"], errors="coerce").dropna() / 9.81
-            accel_lat = pd.to_numeric(accel_frame["accel_lat_smooth_g"], errors="coerce").dropna() / 9.81
-
-            if len(speed) < 2:
-                raise ValueError("Need at least 2 valid gps_x points to compute legacy split features")
-            if len(accel_long) < 2 or len(accel_lat) < 2:
-                raise ValueError("Need at least 2 valid accelerometer points to compute legacy split features")
-
-            return {
-                "speed_mean": float(speed.mean()),
-                "speed_std": float(speed.std(ddof=1)),
-                "accel_long_std": float(accel_long.std(ddof=1)),
-                "accel_lat_std": float(accel_lat.std(ddof=1)),
-                "distance_km": float((speed.mean() * len(speed)) / 3600.0),
-            }
-
         gps = self._normalize_gps_frame(gps_frame)
         accel = self._normalize_accel_frame(accel_frame)
 

@@ -118,8 +118,7 @@ public class TripMonitorService : BackgroundService
                 timestamp_s = (d.Timestamp - startTime).TotalSeconds,
                 lat = (double)d.ViDo,
                 lon = (double)d.KinhDo,
-                speed_kmh = (double)d.TocDo,
-                gps_x = d.GpsX.HasValue ? d.GpsX.Value : (double?)null
+                speed_kmh = (double)d.TocDo
             }),
             accel_points = accelData.Select(d => new
             {

@@ -15,9 +15,11 @@ namespace DACS.Migrations
                 IF COL_LENGTH('ChiTietViPhams', 'IdPhieuViPham') IS NOT NULL
                    AND COL_LENGTH('ChiTietViPhams', 'PhieuViPhamIdPhieuViPham') IS NOT NULL
                 BEGIN
-                    UPDATE [dbo].[ChiTietViPhams]
-                    SET [PhieuViPhamIdPhieuViPham] = [IdPhieuViPham]
-                    WHERE [PhieuViPhamIdPhieuViPham] = 0 AND [IdPhieuViPham] <> 0;
+                    EXEC(N'
+                        UPDATE [dbo].[ChiTietViPhams]
+                        SET [PhieuViPhamIdPhieuViPham] = [IdPhieuViPham]
+                        WHERE [PhieuViPhamIdPhieuViPham] = 0 AND [IdPhieuViPham] <> 0;
+                    ');
                 END
                 """);
 
@@ -26,9 +28,11 @@ namespace DACS.Migrations
                 IF COL_LENGTH('ChiTietViPhams', 'IdQuyDinh') IS NOT NULL
                    AND COL_LENGTH('ChiTietViPhams', 'QuyDinhIdQuyDinh') IS NOT NULL
                 BEGIN
-                    UPDATE [dbo].[ChiTietViPhams]
-                    SET [QuyDinhIdQuyDinh] = [IdQuyDinh]
-                    WHERE [QuyDinhIdQuyDinh] = 0 AND [IdQuyDinh] <> 0;
+                    EXEC(N'
+                        UPDATE [dbo].[ChiTietViPhams]
+                        SET [QuyDinhIdQuyDinh] = [IdQuyDinh]
+                        WHERE [QuyDinhIdQuyDinh] = 0 AND [IdQuyDinh] <> 0;
+                    ');
                 END
                 """);
 
@@ -60,12 +64,12 @@ namespace DACS.Migrations
 
                     IF COL_LENGTH('ChiTietViPhams', 'IdPhieuViPham') IS NOT NULL
                     BEGIN
-                        ALTER TABLE [dbo].[ChiTietViPhams] DROP COLUMN [IdPhieuViPham];
+                        EXEC(N'ALTER TABLE [dbo].[ChiTietViPhams] DROP COLUMN [IdPhieuViPham];');
                     END
 
                     IF COL_LENGTH('ChiTietViPhams', 'IdQuyDinh') IS NOT NULL
                     BEGIN
-                        ALTER TABLE [dbo].[ChiTietViPhams] DROP COLUMN [IdQuyDinh];
+                        EXEC(N'ALTER TABLE [dbo].[ChiTietViPhams] DROP COLUMN [IdQuyDinh];');
                     END
                 END
                 """);

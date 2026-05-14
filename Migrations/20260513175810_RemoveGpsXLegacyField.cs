@@ -5,7 +5,7 @@
 namespace DACS.Migrations
 {
     /// <inheritdoc />
-    public partial class ChangeSensorToDouble : Migration
+    public partial class RemoveGpsXLegacyField : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -13,10 +13,7 @@ namespace DACS.Migrations
             migrationBuilder.Sql(
                 @"
 IF COL_LENGTH('DuLieuGPS', 'GpsX') IS NOT NULL
-    ALTER TABLE [DuLieuGPS] ALTER COLUMN [GpsX] float NULL;
-
-IF COL_LENGTH('DuLieuGiaTocKes', 'GiaTocNgangMuot') IS NOT NULL
-    ALTER TABLE [DuLieuGiaTocKes] ALTER COLUMN [GiaTocNgangMuot] float NULL;
+    ALTER TABLE [DuLieuGPS] DROP COLUMN [GpsX];
 ");
         }
 
@@ -25,11 +22,8 @@ IF COL_LENGTH('DuLieuGiaTocKes', 'GiaTocNgangMuot') IS NOT NULL
         {
             migrationBuilder.Sql(
                 @"
-IF COL_LENGTH('DuLieuGPS', 'GpsX') IS NOT NULL
-    ALTER TABLE [DuLieuGPS] ALTER COLUMN [GpsX] decimal(18,2) NULL;
-
-IF COL_LENGTH('DuLieuGiaTocKes', 'GiaTocNgangMuot') IS NOT NULL
-    ALTER TABLE [DuLieuGiaTocKes] ALTER COLUMN [GiaTocNgangMuot] decimal(18,2) NULL;
+IF COL_LENGTH('DuLieuGPS', 'GpsX') IS NULL
+    ALTER TABLE [DuLieuGPS] ADD [GpsX] float NULL;
 ");
         }
     }
