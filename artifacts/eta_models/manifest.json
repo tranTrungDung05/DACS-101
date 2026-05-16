@@ -1,0 +1,45 @@
+{
+  "dataset": "Porto Taxi",
+  "data_path": "train.csv",
+  "sample_rows": 100000,
+  "min_prefix_points": 3,
+  "prefix_step": 5,
+  "feature_set_name": "top_6_features",
+  "feature_columns": [
+    "observed_points",
+    "distance_to_destination",
+    "distance_from_start",
+    "progress_ratio",
+    "recent_speed_avg_kmh",
+    "avg_speed_since_start_kmh"
+  ],
+  "target_transform": "log1p(remaining_eta_seconds)",
+  "thresholds": {
+    "long_trip_seconds": 3600,
+    "very_long_trip_seconds": 7200
+  },
+  "models": {
+    "global_log_top6": {
+      "path": "artifacts/eta_models/global_log_top6.json",
+      "train_subset": "all_prefix_samples"
+    },
+    "specialized_long_log_top6": {
+      "path": "artifacts/eta_models/specialized_long_log_top6.json",
+      "train_subset": "remaining_eta_seconds >= 3600"
+    },
+    "specialized_very_long_log_top6": {
+      "path": "artifacts/eta_models/specialized_very_long_log_top6.json",
+      "train_subset": "remaining_eta_seconds >= 7200"
+    }
+  },
+  "xgboost_params": {
+    "n_estimators": 500,
+    "max_depth": 6,
+    "learning_rate": 0.05,
+    "subsample": 0.8,
+    "colsample_bytree": 0.8,
+    "objective": "reg:squarederror",
+    "random_state": 42,
+    "n_jobs": -1
+  }
+}
