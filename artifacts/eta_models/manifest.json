@@ -1,0 +1,29 @@
+{
+  "dataset": "Porto Taxi",
+  "feature_set_name": "full_18_features_single_model",
+  "feature_columns": [
+    "observed_points",
+    "start_longitude",
+    "start_latitude",
+    "current_longitude",
+    "current_latitude",
+    "destination_longitude",
+    "destination_latitude",
+    "distance_to_destination",
+    "distance_from_start",
+    "progress_ratio",
+    "avg_speed_since_start_kmh",
+    "recent_speed_kmh",
+    "recent_speed_avg_kmh",
+    "heading_alignment",
+    "recent_low_speed_count",
+    "start_hour",
+    "day_of_week",
+    "is_weekend"
+  ],
+  "target_transform": "log1p(remaining_eta_seconds)",
+  "model": {
+    "name": "xgb_log_full_single",
+    "path": "xgb_log_full_single.json"
+  }
+}

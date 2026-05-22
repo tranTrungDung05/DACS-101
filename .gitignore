@@ -23,3 +23,5 @@ Thumbs.db
 *.user
 *.userosscache
 *.sln.docstates
+
+artifacts/eta_models/xgb_log_full_single.json
