@@ -8,7 +8,7 @@ public interface IETAService
     Task<ETAResult?> PredictAsync(IReadOnlyList<ETAGpsPoint> gpsPoints, ETAGpsPoint destination, CancellationToken cancellationToken = default);
 }
 
-public record ETAGpsPoint(double Latitude, double Longitude);
+public record ETAGpsPoint(double Latitude, double Longitude, long? Timestamp = null);
 public record ETAResult(double EtaSeconds, double EtaMinutes, string SelectedModel);
 
 public class ETAService : IETAService
@@ -35,7 +35,11 @@ public class ETAService : IETAService
 
         var payload = new
         {
-            gps_points = gpsPoints.Select(point => new { lat = point.Latitude, lon = point.Longitude }),
+            gps_points = gpsPoints.Select(point => new { 
+                lat = point.Latitude, 
+                lon = point.Longitude,
+                timestamp = point.Timestamp
+            }),
             destination = new { lat = destination.Latitude, lon = destination.Longitude }
         };
 

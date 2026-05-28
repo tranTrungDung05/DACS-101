@@ -291,7 +291,7 @@ public class GpsController : ControllerBase
 
         var etaPoints = AppendAndGetEtaPoints(
             journey.IdHanhTrinh,
-            new ETAGpsPoint(rawLatitude, rawLongitude)
+            new ETAGpsPoint(rawLatitude, rawLongitude, DateTimeOffset.UtcNow.ToUnixTimeSeconds())
         );
         var etaDestination = ResolveEtaDestination(vehicle.IdPhuongTien);
         var distanceToEtaDestinationKm = CalculateDistance(
@@ -301,11 +301,15 @@ public class GpsController : ControllerBase
             etaDestination.Longitude
         );
 
+        bool isNewEtaPoint = etaPoints.Count > 0 &&
+                             etaPoints[^1].Latitude == rawLatitude &&
+                             etaPoints[^1].Longitude == rawLongitude;
+
         if (distanceToEtaDestinationKm <= EtaArrivalThresholdKm)
         {
             await _hubContext.Clients.All.SendAsync("ReceiveEtaUpdate", vehicle.BienSo, "đã tới nơi rồi");
         }
-        else if (etaPoints.Count >= 3)
+        else if (isNewEtaPoint && etaPoints.Count >= 3)
         {
             var etaResult = await _etaService.PredictAsync(etaPoints, etaDestination, HttpContext.RequestAborted);
             if (etaResult != null)
@@ -348,7 +352,7 @@ public class GpsController : ControllerBase
         return await _context.DuLieuGPS
             .Where(d => d.HanhTrinhIdHanhTrinh == journeyId)
             .OrderBy(d => d.Timestamp)
-            .Select(d => new ETAGpsPoint((double)d.ViDo, (double)d.KinhDo))
+            .Select(d => new ETAGpsPoint((double)d.ViDo, (double)d.KinhDo, null))
             .ToListAsync();
     }
 
@@ -358,7 +362,26 @@ public class GpsController : ControllerBase
 
         lock (points)
         {
-            points.Add(rawPoint);
+            if (points.Count == 0)
+            {
+                points.Add(rawPoint);
+            }
+            else
+            {
+                var lastPoint = points[^1];
+                double distanceKm = CalculateDistance(
+                    lastPoint.Latitude,
+                    lastPoint.Longitude,
+                    rawPoint.Latitude,
+                    rawPoint.Longitude
+                );
+
+                // Chỉ thêm điểm mới nếu khoảng cách tới điểm trước đó >= 100m (0.1 km)
+                if (distanceKm >= 0.1)
+                {
+                    points.Add(rawPoint);
+                }
+            }
             return points.ToList();
         }
     }

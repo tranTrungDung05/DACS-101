@@ -13,7 +13,7 @@ DEFAULT_ETA_API_URL = "http://127.0.0.1:8001/predict"
 DEFAULT_APPSETTINGS_PATH = Path("appsettings.json")
 DEFAULT_CSV_PATH = Path("1404157147620000079_gps.csv")
 DEFAULT_INTERVAL_SECONDS = 15
-DEFAULT_VEHICLE_ID = 1
+DEFAULT_VEHICLE_ID = 13
 DEFAULT_REQUEST_TIMEOUT_SECONDS = 15
 ETA_ARRIVAL_THRESHOLD_KM = 0.03
 
@@ -85,7 +85,10 @@ def request_eta_prediction(
         return None
 
     payload = {
-        "gps_points": [{"lat": point["lat"], "lon": point["lon"]} for point in observed_points],
+        "gps_points": [
+            {"lat": point["lat"], "lon": point["lon"], "timestamp": point.get("timestamp")}
+            for point in observed_points
+        ],
         "destination": {"lat": destination[0], "lon": destination[1]},
     }
     response = requests.post(eta_api_url, json=payload, timeout=request_timeout_seconds)
@@ -105,6 +108,18 @@ def format_eta_status(
 
     prefix = f"ETA vehicle {vehicle_id}: " if vehicle_id is not None else "ETA: "
     return f"{prefix}{eta_result['eta_minutes']:.1f}p ({eta_result['eta_seconds']:.1f}s)"
+
+
+def filter_eta_points_100m(observed_points: list[dict[str, float]]) -> list[dict[str, float]]:
+    if not observed_points:
+        return []
+    filtered = [observed_points[0]]
+    for point in observed_points[1:]:
+        last = filtered[-1]
+        dist = calculate_distance_km(last["lat"], last["lon"], point["lat"], point["lon"])
+        if dist >= 0.1:  # 100 meters
+            filtered.append(point)
+    return filtered
 
 
 def send_gps_point(
@@ -141,16 +156,30 @@ def send_gps_point(
             destination[1],
         ) <= ETA_ARRIVAL_THRESHOLD_KM
 
-        try:
-            eta_result = request_eta_prediction(
-                eta_api_url=eta_api_url,
-                observed_points=observed_points,
-                destination=destination,
-                request_timeout_seconds=request_timeout_seconds,
-            )
-            print(format_eta_status(eta_result, has_arrived, vehicle_id=vehicle_id))
-        except requests.RequestException as exc:
-            print(f"[WARN] ETA request failed at point {index}: {exc}")
+        # Lọc các điểm cách nhau ít nhất 100m giống hệt C# Backend
+        filtered_points = filter_eta_points_100m(observed_points)
+        is_new_100m = False
+        if len(filtered_points) > 0:
+            last_filtered = filtered_points[-1]
+            if last_filtered["lat"] == point["lat"] and last_filtered["lon"] == point["lon"]:
+                is_new_100m = True
+
+        if is_new_100m:
+            try:
+                eta_result = request_eta_prediction(
+                    eta_api_url=eta_api_url,
+                    observed_points=filtered_points,
+                    destination=destination,
+                    request_timeout_seconds=request_timeout_seconds,
+                )
+                print(format_eta_status(eta_result, has_arrived, vehicle_id=vehicle_id))
+                if eta_result and "features" in eta_result:
+                    print(f"   [Features Used] elapsed_seconds={eta_result['features']['elapsed_seconds']:.1f}s, dist_from_start={eta_result['features']['distance_from_start']:.3f}km, dist_to_dest={eta_result['features']['distance_to_destination']:.3f}km")
+            except requests.RequestException as exc:
+                print(f"[WARN] ETA request failed at point {index}: {exc}")
+        else:
+            # Xe di chuyển < 100m, không tính lại ETA trên terminal
+            pass
     except requests.RequestException as exc:
         elapsed_seconds = time.perf_counter() - started_at
         print(f"[ERROR] Request failed at point {index} after {elapsed_seconds:.2f}s: {exc}")
@@ -165,6 +194,8 @@ def stream_gps_points(
     interval_seconds: int = DEFAULT_INTERVAL_SECONDS,
     request_timeout_seconds: int = DEFAULT_REQUEST_TIMEOUT_SECONDS,
 ) -> None:
+    import random
+
     points = load_gps_points(csv_path)
     if not points:
         print(f"[WARN] No valid GPS points found in {csv_path}")
@@ -174,20 +205,22 @@ def stream_gps_points(
 
     print(
         f"[INFO] Streaming {len(points)} GPS points from {csv_path} "
-        f"to vehicle {vehicle_id} every {interval_seconds}s"
+        f"to vehicle {vehicle_id} with randomized intervals (5-15s)"
     )
     print(f"[INFO] ETA destination for vehicle {vehicle_id}: lat={destination[0]:.6f} lon={destination[1]:.6f}")
 
     effective_timeout_seconds = resolve_request_timeout_seconds(interval_seconds, request_timeout_seconds)
-    started_at = time.perf_counter()
     futures: list[Future[None]] = []
 
     with ThreadPoolExecutor(max_workers=4) as executor:
         for index, point in enumerate(points, start=1):
-            scheduled_at = started_at + ((index - 1) * interval_seconds)
-            delay_seconds = scheduled_at - time.perf_counter()
-            if delay_seconds > 0:
-                time.sleep(delay_seconds)
+            if index > 1:
+                # Ngẫu nhiên khoảng thời gian gửi điểm từ 5 đến 15 giây
+                sleep_duration = random.uniform(5.0, 15.0)
+                time.sleep(sleep_duration)
+
+            # Gán Unix Timestamp vật lý thực tế ngay tại thời điểm gửi
+            point["timestamp"] = time.time()
 
             payload = build_payload(vehicle_id, point)
             observed_points = points[:index]
