@@ -1,8 +1,10 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from typing import Optional
 import torch
 import json
 import os
+import datetime
 from model import DeepTTETransformer
 
 app = FastAPI(title="DeepTTETransformer Chengdu ETA Service")
@@ -50,13 +52,13 @@ print(f"Successfully loaded DeepTTETransformer weights on {device}!")
 
 # 5. Define request schema
 class ETARequest(BaseModel):
-    uid: int              # Driver ID
-    weekid: int           # Day of the week (0 to 6)
-    timeid: int           # Minute of the day (0 to 1439)
-    current_longi: list[float]  # List of route longitude coordinate sequence
-    current_lati: list[float]   # List of route latitude coordinate sequence
-    current_dis: list[float]    # List of cumulative distance sequence (Haversine)
-    current_state: list[int]    # List of segment travel state indicators (usually 0s or 1s)
+    uid: int                                   # Driver ID
+    weekid: Optional[int] = None               # Optional: Day of the week (0 to 6), defaults to current day
+    timeid: Optional[int] = None               # Optional: Minute of the day (0 to 1439), defaults to current minute
+    current_longi: list[float]                 # List of route longitude coordinate sequence
+    current_lati: list[float]                  # List of route latitude coordinate sequence
+    current_dis: list[float]                   # List of cumulative distance sequence (Haversine)
+    current_state: list[int]                   # List of segment travel state indicators (usually 0s or 1s)
 
 @app.post("/predict_eta")
 def predict_eta(data: ETARequest):
@@ -69,11 +71,16 @@ def predict_eta(data: ETARequest):
         # Sum of segments is the total distance of the trip
         total_dist = data.current_dis[-1]
 
+        # 6. Fallback to current system time if not provided
+        now = datetime.datetime.now()
+        weekid_val = data.weekid if data.weekid is not None else now.weekday()
+        timeid_val = data.timeid if data.timeid is not None else (now.hour * 60 + now.minute)
+
         # Structure batch (batch_size = 1)
         batch = {
             "uid": torch.tensor([data.uid]).long().to(device),
-            "weekid": torch.tensor([data.weekid]).long().to(device),
-            "timeid": torch.tensor([data.timeid]).long().to(device),
+            "weekid": torch.tensor([weekid_val]).long().to(device),
+            "timeid": torch.tensor([timeid_val]).long().to(device),
             "dist": torch.tensor([total_dist]).float().to(device),
             "current_longi": torch.tensor([data.current_longi]).float().to(device),
             "current_lati": torch.tensor([data.current_lati]).float().to(device),
@@ -93,3 +100,4 @@ def predict_eta(data: ETARequest):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
