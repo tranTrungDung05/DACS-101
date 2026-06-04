@@ -305,16 +305,18 @@ public class GpsController : ControllerBase
                              etaPoints[^1].Latitude == rawLatitude &&
                              etaPoints[^1].Longitude == rawLongitude;
 
+        string etaMessage = null;
         if (distanceToEtaDestinationKm <= EtaArrivalThresholdKm)
         {
-            await _hubContext.Clients.All.SendAsync("ReceiveEtaUpdate", vehicle.BienSo, "đã tới nơi rồi");
+            etaMessage = "đã tới nơi rồi";
+            await _hubContext.Clients.All.SendAsync("ReceiveEtaUpdate", vehicle.BienSo, etaMessage);
         }
         else if (isNewEtaPoint && etaPoints.Count >= 3)
         {
             var etaResult = await _etaService.PredictAsync(etaPoints, etaDestination, HttpContext.RequestAborted);
             if (etaResult != null)
             {
-                var etaMessage = $"thời gian còn lại đến đích: {etaResult.EtaMinutes:0.0}p";
+                etaMessage = $"thời gian còn lại đến đích: {etaResult.EtaMinutes:0.0}p";
                 await _hubContext.Clients.All.SendAsync("ReceiveEtaUpdate", vehicle.BienSo, etaMessage);
             }
         }
@@ -326,7 +328,11 @@ public class GpsController : ControllerBase
             request.Longitude, 
             request.Speed);
 
-        return Ok(new { status = "Success", message = $"Location updated for {vehicle.BienSo}. Total distance: {journey.TongQuangDuong:N2} km" });
+        return Ok(new { 
+            status = "Success", 
+            message = $"Location updated for {vehicle.BienSo}. Total distance: {journey.TongQuangDuong:N2} km",
+            eta = etaMessage
+        });
     }
 
     private double CalculateDistance(double lat1, double lon1, double lat2, double lon2)

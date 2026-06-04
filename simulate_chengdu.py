@@ -47,7 +47,10 @@ def main():
             elapsed = time.perf_counter() - started_at
             
             if response.ok:
-                print(f"[{i+1}/{total_points}] OK | sent: ({lat:.6f}, {lon:.6f}) | elapsed: {elapsed:.2f}s")
+                res_data = response.json()
+                eta_val = res_data.get("eta")
+                eta_str = f" | {eta_val}" if eta_val else " | ETA: Đang tính..."
+                print(f"[{i+1}/{total_points}] OK | sent: ({lat:.6f}, {lon:.6f}){eta_str} | elapsed: {elapsed:.2f}s")
             else:
                 print(f"[{i+1}/{total_points}] FAILED {response.status_code} | response: {response.text[:150]}")
                 
