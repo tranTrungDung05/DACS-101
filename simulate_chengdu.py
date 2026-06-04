@@ -29,6 +29,7 @@ def main():
     print(f"Interval: {INTERVAL_SECONDS} seconds per update")
     print("====================================================")
 
+    last_eta_str = "ETA: Đang tính..."
     for i in range(total_points):
         lat = latitudes[i]
         lon = longitudes[i]
@@ -49,8 +50,9 @@ def main():
             if response.ok:
                 res_data = response.json()
                 eta_val = res_data.get("eta")
-                eta_str = f" | {eta_val}" if eta_val else " | ETA: Đang tính..."
-                print(f"[{i+1}/{total_points}] OK | sent: ({lat:.6f}, {lon:.6f}){eta_str} | elapsed: {elapsed:.2f}s")
+                if eta_val:
+                    last_eta_str = eta_val
+                print(f"[{i+1}/{total_points}] OK | sent: ({lat:.6f}, {lon:.6f}) | {last_eta_str} | elapsed: {elapsed:.2f}s")
             else:
                 print(f"[{i+1}/{total_points}] FAILED {response.status_code} | response: {response.text[:150]}")
                 
