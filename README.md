@@ -33,19 +33,20 @@ dotnet ef database update
 *(Lưu ý: Nếu chưa có công cụ `dotnet ef`, hãy cài đặt bằng lệnh: `dotnet tool install --global dotnet-ef`)*
 
 ### 3. Cài đặt & Khởi chạy Dịch vụ dự đoán ETA (Python FastAPI)
-Dịch vụ dự đoán ETA sử dụng mô hình học máy **XGBoost v2 (`xgb_model_v2.json`)** chạy trên nền FastAPI (cổng `8001`).
+Dịch vụ dự đoán ETA tích hợp mô hình học máy **DeepTTETransformer** (dành cho khu vực Chengdu) và **XGBoost v2** (dành cho khu vực Porto) chạy trên nền FastAPI (cổng `8001`).
 
+Kích hoạt môi trường Conda chứa PyTorch và khởi chạy API:
 ```bash
-# Cài đặt các thư viện cần thiết từ requirements.txt
-~/.venv/bin/pip install -r requirements.txt
+# Kích hoạt môi trường conda
+conda activate libcity_env
 
-# Khởi chạy dịch vụ ETA API (FastAPI)
-~/.venv/bin/uvicorn api:app --port 8001 --host 127.0.0.1
+# Khởi chạy dịch vụ ETA API (FastAPI) từ thư mục gốc
+uvicorn Services.app:app --port 8001 --host 127.0.0.1
 ```
 > [!NOTE]
-> Mô hình dự đoán ETA v2 hỗ trợ song song 2 API endpoint:
-> - `/predict` (Legacy): Tương thích với các yêu cầu từ máy chủ C# và `gps_eta_simulator.py`.
-> - `/predict_eta` (New): Nhận chuỗi tọa độ `[longitude, latitude]` trực tiếp từ mô hình học máy mới.
+> Hệ thống hỗ trợ định tuyến thông minh (Multi-Region Routing):
+> - Tự động phát hiện tọa độ thuộc khu vực **Chengdu** để áp dụng mô hình mạng nơ-ron **DeepTTETransformer** (với thuật toán đếm ngược ETA mượt mà).
+> - Sử dụng mô hình **XGBoost v2** làm phương án mặc định hoặc khi phát hiện xe di chuyển tại khu vực **Porto**.
 
 ### 4. Khởi chạy Ứng dụng Web (ASP.NET Core)
 Mở một terminal mới và chạy máy chủ ứng dụng web chính:
@@ -55,18 +56,22 @@ dotnet run
 Sau khi chạy thành công, truy cập giao diện giám sát bản đồ thời gian thực tại: **`http://localhost:5025`**
 
 ### 5. Chạy bộ giả lập GPS Tracker (Simulators)
-Để cập nhật xe di chuyển trên bản đồ và nhận dự đoán ETA thời gian thực, bạn có 2 bộ giả lập tùy chọn:
+Để cập nhật xe di chuyển trên bản đồ và nhận dự đoán ETA thời gian thực, bạn chạy giả lập:
 
-#### Lựa chọn A: Giả lập GPS từ tệp mẫu có Dự đoán ETA thực tế
-Sử dụng dữ liệu hành trình Porto thực tế từ tệp CSV để cập nhật vị trí xe lên Web App đồng thời liên hệ trực tiếp FastAPI để in kết quả dự đoán ETA ra màn hình:
+#### Giả lập hành trình Chengdu với mô hình DeepTTETransformer
+Chạy kịch bản nạp chuỗi tọa độ thực tế của chuyến đi Chengdu, truyền dữ liệu thời gian thực lên ứng dụng C# Web App và hiển thị đếm ngược thời gian dự kiến (ETA) trực tiếp ra màn hình:
 ```bash
-~/.venv/bin/python gps_eta_simulator.py
+# Kích hoạt môi trường conda
+conda activate libcity_env
+
+# Chạy giả lập Chengdu
+python simulate_chengdu.py
 ```
 
-#### Lựa chọn B: Giả lập hành vi Lái xe & Gia tốc kế (UAH Dataset)
+#### Giả lập hành vi Lái xe & Gia tốc kế (UAH Dataset)
 Giả lập xe chạy trên bản đồ, kết hợp gửi dữ liệu gia tốc kế để kiểm tra vi phạm quá tốc độ và phân tích hành vi lái xe (NORMAL / AGGRESSIVE):
 ```bash
-~/.venv/bin/python simulator.py
+python simulator.py
 ```
 
 ---
