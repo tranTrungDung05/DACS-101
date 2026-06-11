@@ -16,7 +16,9 @@ namespace DACS.Controllers;
 public class GpsController : ControllerBase
 {
     private const double EtaArrivalThresholdKm = 0.03;
-    private static readonly ConcurrentDictionary<int, List<ETAGpsPoint>> EtaRawPointBuffer = new();
+    private const double RouteDeviationThresholdMeters = 75;
+    private const int RouteRefreshCooldownSeconds = 15;
+    private static readonly ConcurrentDictionary<int, RouteState> RouteStateByJourney = new();
     private readonly ApplicationDbContext _context;
     private readonly IHubContext<GpsHub> _hubContext;
     private readonly IConfiguration _configuration;
@@ -24,8 +26,9 @@ public class GpsController : ControllerBase
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IETAService _etaService;
+    private readonly IRoutingService _routingService;
 
-    public GpsController(ApplicationDbContext context, IHubContext<GpsHub> hubContext, IConfiguration configuration, ISpeedLimitService speedLimitService, IHttpClientFactory httpClientFactory, IServiceScopeFactory scopeFactory, IETAService etaService)
+    public GpsController(ApplicationDbContext context, IHubContext<GpsHub> hubContext, IConfiguration configuration, ISpeedLimitService speedLimitService, IHttpClientFactory httpClientFactory, IServiceScopeFactory scopeFactory, IETAService etaService, IRoutingService routingService)
     {
         _context = context;
         _hubContext = hubContext;
@@ -34,6 +37,7 @@ public class GpsController : ControllerBase
         _httpClientFactory = httpClientFactory;
         _scopeFactory = scopeFactory;
         _etaService = etaService;
+        _routingService = routingService;
     }
 
     // POST: api/Gps/Update
@@ -107,7 +111,7 @@ public class GpsController : ControllerBase
                     Console.ForegroundColor = ConsoleColor.Magenta;
                     Console.WriteLine($"[TRIP] Đóng hành trình #{journey.IdHanhTrinh} ({vehicle.BienSo}) - Nghỉ {gap.TotalMinutes:N0} phút > ngưỡng {TRIP_GAP_MINUTES} phút");
                     Console.ResetColor();
-                    EtaRawPointBuffer.TryRemove(journey.IdHanhTrinh, out _);
+                    RouteStateByJourney.TryRemove(journey.IdHanhTrinh, out _);
 
                     // TỰ ĐỘNG PHÂN TÍCH hành trình vừa đóng (chạy nền, không block request)
                     var closedJourneyId = journey.IdHanhTrinh;
@@ -289,11 +293,13 @@ public class GpsController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        var etaPoints = AppendAndGetEtaPoints(
-            journey.IdHanhTrinh,
-            new ETAGpsPoint(rawLatitude, rawLongitude, DateTimeOffset.UtcNow.ToUnixTimeSeconds())
-        );
         var etaDestination = ResolveEtaDestination(vehicle.IdPhuongTien);
+        var currentEtaPoint = new ETAGpsPoint(rawLatitude, rawLongitude, DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+        var routeState = await GetOrRefreshRouteStateAsync(
+            journey.IdHanhTrinh,
+            currentEtaPoint,
+            etaDestination,
+            HttpContext.RequestAborted);
         var distanceToEtaDestinationKm = CalculateDistance(
             rawLatitude,
             rawLongitude,
@@ -301,19 +307,15 @@ public class GpsController : ControllerBase
             etaDestination.Longitude
         );
 
-        bool isNewEtaPoint = etaPoints.Count > 0 &&
-                             etaPoints[^1].Latitude == rawLatitude &&
-                             etaPoints[^1].Longitude == rawLongitude;
-
-        string etaMessage = null;
+        string? etaMessage = null;
         if (distanceToEtaDestinationKm <= EtaArrivalThresholdKm)
         {
             etaMessage = "đã tới nơi rồi";
             await _hubContext.Clients.All.SendAsync("ReceiveEtaUpdate", vehicle.BienSo, etaMessage);
         }
-        else if (isNewEtaPoint && etaPoints.Count >= 3)
+        else if (routeState != null && routeState.EtaSampleTrip.Count >= 3)
         {
-            var etaResult = await _etaService.PredictAsync(etaPoints, etaDestination, HttpContext.RequestAborted);
+            var etaResult = await _etaService.PredictAsync(routeState.EtaSampleTrip, etaDestination, HttpContext.RequestAborted);
             if (etaResult != null)
             {
                 etaMessage = $"thời gian còn lại đến đích: {etaResult.EtaMinutes:0.0}p";
@@ -353,45 +355,6 @@ public class GpsController : ControllerBase
         return deg * (Math.PI / 180);
     }
 
-    private async Task<List<ETAGpsPoint>> LoadJourneyEtaPointsAsync(int journeyId)
-    {
-        return await _context.DuLieuGPS
-            .Where(d => d.HanhTrinhIdHanhTrinh == journeyId)
-            .OrderBy(d => d.Timestamp)
-            .Select(d => new ETAGpsPoint((double)d.ViDo, (double)d.KinhDo, null))
-            .ToListAsync();
-    }
-
-    private List<ETAGpsPoint> AppendAndGetEtaPoints(int journeyId, ETAGpsPoint rawPoint)
-    {
-        var points = EtaRawPointBuffer.GetOrAdd(journeyId, _ => new List<ETAGpsPoint>());
-
-        lock (points)
-        {
-            if (points.Count == 0)
-            {
-                points.Add(rawPoint);
-            }
-            else
-            {
-                var lastPoint = points[^1];
-                double distanceKm = CalculateDistance(
-                    lastPoint.Latitude,
-                    lastPoint.Longitude,
-                    rawPoint.Latitude,
-                    rawPoint.Longitude
-                );
-
-                // Chỉ thêm điểm mới nếu khoảng cách tới điểm trước đó >= 100m (0.1 km)
-                if (distanceKm >= 0.1)
-                {
-                    points.Add(rawPoint);
-                }
-            }
-            return points.ToList();
-        }
-    }
-
     private ETAGpsPoint ResolveEtaDestination(int vehicleId)
     {
         var vehicleSection = _configuration.GetSection($"EtaDestinations:{vehicleId}");
@@ -405,6 +368,55 @@ public class GpsController : ControllerBase
         var fallbackLat = _configuration.GetValue<double>("EtaDestinationLat");
         var fallbackLon = _configuration.GetValue<double>("EtaDestinationLon");
         return new ETAGpsPoint(fallbackLat, fallbackLon);
+    }
+
+    private async Task<RouteState?> GetOrRefreshRouteStateAsync(
+        int journeyId,
+        ETAGpsPoint currentPoint,
+        ETAGpsPoint destination,
+        CancellationToken cancellationToken)
+    {
+        RouteStateByJourney.TryGetValue(journeyId, out var existingState);
+
+        if (existingState != null && !ShouldRefreshRoute(existingState, currentPoint, destination))
+        {
+            return existingState;
+        }
+
+        var route = await _routingService.GetRouteAsync(currentPoint, destination, cancellationToken);
+        if (route == null)
+        {
+            return existingState;
+        }
+
+        var etaSampleTrip = _routingService.BuildEtaSampleTrip(
+            route,
+            currentPoint.Timestamp ?? DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+
+        var refreshedState = new RouteState(destination, route.Points, etaSampleTrip, DateTime.UtcNow);
+        RouteStateByJourney[journeyId] = refreshedState;
+        return refreshedState;
+    }
+
+    private bool ShouldRefreshRoute(RouteState state, ETAGpsPoint currentPoint, ETAGpsPoint destination)
+    {
+        if (HasDestinationChanged(state.Destination, destination))
+        {
+            return true;
+        }
+
+        if ((DateTime.UtcNow - state.RefreshedAtUtc).TotalSeconds < RouteRefreshCooldownSeconds)
+        {
+            return false;
+        }
+
+        return _routingService.HasVehicleDeviatedFromRoute(currentPoint, state.RoutePoints, RouteDeviationThresholdMeters);
+    }
+
+    private static bool HasDestinationChanged(ETAGpsPoint currentDestination, ETAGpsPoint nextDestination)
+    {
+        return Math.Abs(currentDestination.Latitude - nextDestination.Latitude) > 0.000001 ||
+               Math.Abs(currentDestination.Longitude - nextDestination.Longitude) > 0.000001;
     }
 
     /// <summary>

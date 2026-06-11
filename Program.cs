@@ -10,6 +10,7 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<ISpeedLimitService, SpeedLimitService>();
 builder.Services.AddScoped<IETAService, ETAService>();
+builder.Services.AddScoped<IRoutingService, RoutingService>();
 builder.Services.AddHostedService<TripMonitorService>();
 
 //--------------------------------
